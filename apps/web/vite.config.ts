@@ -17,5 +17,13 @@ export default defineConfig({
     },
   },
   server: { port: 5173 },
-  build: { outDir: 'dist', emptyOutDir: true },
+  optimizeDeps: {
+    // Monorepo TS sources via alias — avoid heavy pre-bundle on constrained CI hosts.
+    exclude: ['@dropline/core'],
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    target: 'es2020',
+  },
 });
