@@ -1,0 +1,11 @@
+{
+  "name": "@dropline-method-3/editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./styles.css": "./styles/styles.css",
+    "./assets/*": "./assets/*"
+  }
+}

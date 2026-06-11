@@ -1,0 +1,492 @@
+:root {
+  --ink-deep: #102A43;
+  --teal: #1CA7A8;
+  --mist: #F6F9FB;
+  --water: #7CC7D9;
+  --text: #17212B;
+  --stone: #D8D2C4;
+  --line: #c5d5de;
+  --muted: #4a5f6f;
+  --paper: #ffffff;
+  --danger: #9f2d24;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--mist);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+button, input, textarea {
+  font: inherit;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-deep);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 550;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+button:hover {
+  border-color: var(--teal);
+}
+
+button.primary {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+}
+
+button.primary:hover {
+  background: #179697;
+  border-color: #179697;
+}
+
+button.danger {
+  color: var(--danger);
+  border-color: #e8c4c0;
+}
+
+input, textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--text);
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+input:focus, textarea:focus {
+  outline: 2px solid rgba(28, 167, 168, 0.35);
+  border-color: var(--teal);
+}
+
+label span, .field-compact > span {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.app-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand-logo {
+  display: block;
+  height: 56px;
+  width: auto;
+}
+
+.brand-tagline {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.project-fields {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.field-compact {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 12px;
+  background: var(--mist);
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+/* Body layout */
+.app-body {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Drop path (Image 3 feel — layered progress) */
+.drop-path {
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drop-path-icon img {
+  display: block;
+  margin: 0 auto;
+  opacity: 0.9;
+}
+
+.drop-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.drop-steps li {
+  position: relative;
+  padding-left: 4px;
+}
+
+.drop-steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 36px;
+  width: 2px;
+  height: calc(100% - 8px);
+  background: var(--water);
+  opacity: 0.6;
+}
+
+.drop-step {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.drop-step:hover {
+  background: var(--mist);
+}
+
+.drop-step .step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--mist);
+  color: var(--muted);
+  border: 2px solid var(--line);
+}
+
+.drop-step .step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.drop-step.active {
+  background: rgba(28, 167, 168, 0.08);
+}
+
+.drop-step.active .step-num {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+}
+
+.drop-step.active .step-label {
+  color: var(--ink-deep);
+}
+
+.drop-step.done .step-num {
+  background: var(--ink-deep);
+  color: white;
+  border-color: var(--ink-deep);
+}
+
+.drop-step.done .step-num::after {
+  content: none;
+}
+
+.drop-step.done .step-num {
+  font-size: 11px;
+}
+
+/* Workspace */
+.workspace {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow: auto;
+}
+
+.drop-focus {
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--water);
+}
+
+.drop-eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.drop-focus h2 {
+  margin: 0;
+  font-size: 26px;
+  color: var(--ink-deep);
+  font-weight: 700;
+}
+
+.drop-lead {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  max-width: 640px;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  min-height: 0;
+}
+
+.spine-panel, .focus-panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.panel-head h3, .focus-panel h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-deep);
+  font-weight: 700;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar button {
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.card-list {
+  display: grid;
+  gap: 10px;
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+}
+
+.card {
+  border: 1px solid var(--stone);
+  border-radius: 10px;
+  background: var(--mist);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.card:hover {
+  border-color: var(--water);
+}
+
+.card.active {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(28, 167, 168, 0.15);
+  background: var(--paper);
+}
+
+.card h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-deep);
+}
+
+.card p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.card-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.pill {
+  font-size: 11px;
+  border: 1px solid var(--water);
+  color: var(--ink-deep);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(124, 199, 217, 0.15);
+}
+
+.pill.done {
+  background: rgba(28, 167, 168, 0.12);
+  border-color: var(--teal);
+}
+
+/* Focus panel — per-drop fields */
+.focus-panel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  overflow: auto;
+  max-height: calc(100vh - 220px);
+}
+
+.focus-field {
+  display: grid;
+  gap: 6px;
+}
+
+.focus-field.hidden {
+  display: none;
+}
+
+.quality-box {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--water);
+  border-radius: 10px;
+  padding: 14px;
+  background: rgba(124, 199, 217, 0.08);
+}
+
+.quality-box.hidden {
+  display: none;
+}
+
+.quality-box h4 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-deep);
+}
+
+.quality-box label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.quality-box input[type="checkbox"] {
+  width: auto;
+}
+
+h1, h2, h3, h4, p { margin: 0; }
+
+@media (max-width: 1100px) {
+  .app-header {
+    grid-template-columns: 1fr;
+  }
+
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+
+  .drop-path {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px;
+  }
+
+  .drop-steps {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .drop-steps li:not(:last-child)::after {
+    display: none;
+  }
+
+  .drop-path-icon {
+    display: none;
+  }
+
+  .drop-step {
+    width: auto;
+    grid-template-columns: 28px auto;
+    padding: 6px 8px;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}

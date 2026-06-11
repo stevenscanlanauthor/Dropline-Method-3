@@ -1,0 +1,77 @@
+{
+  "name": "@dropline-method-3/desktop",
+  "version": "1.0.0",
+  "description": "Dropline Method 3 — Mac desktop writing app (bundled, offline-first)",
+  "author": "Steven Scanlan <steven@stevenscanlan.com>",
+  "homepage": "https://www.droplinemethod.com",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:dev": "ELECTRON_DEV=1 electron .",
+    "icons": "bash scripts/generate-icon.sh",
+    "build:dmg": "bash scripts/build-dmg.sh",
+    "build:unsigned": "CSC_IDENTITY_AUTO_DISCOVERY=false bash scripts/build-dmg.sh",
+    "build:signed": "NOTARIZE=true CSC_IDENTITY_AUTO_DISCOVERY=false bash scripts/build-dmg.sh",
+    "build:mas": "bash scripts/build-mas.sh"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^2.5.0",
+    "electron": "^39.8.5",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "electronVersion": "39.8.5",
+    "appId": "com.dropline.method3",
+    "productName": "Dropline Method 3",
+    "copyright": "Copyright © 2026 Dropline",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "target": ["dmg"],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "extendInfo": {
+        "NSHumanReadableCopyright": "Copyright © 2026 Dropline",
+        "LSMinimumSystemVersion": "12.0",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "dmg": {
+      "title": "Dropline Method 3",
+      "icon": "assets/icon.icns",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ],
+      "window": { "width": 540, "height": 380 }
+    },
+    "mas": {
+      "entitlements": "assets/entitlements.mas.plist",
+      "entitlementsInherit": "assets/entitlements.mas.inherit.plist",
+      "provisioningProfile": "provisioning/MacAppStore.provisionprofile",
+      "type": "distribution",
+      "identity": "Apple Distribution"
+    },
+    "afterSign": "scripts/notarize.js"
+  }
+}

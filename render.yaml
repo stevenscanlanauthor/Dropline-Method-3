@@ -1,0 +1,32 @@
+# Dropline Method 3 — static web app at droplinemethod.com
+# Render Blueprint: connect this repo → branch main → Blueprint path render.yaml
+
+services:
+  - type: web
+    name: dropline-method-3-web
+    runtime: static
+    buildCommand: npm ci && npm run build:web
+    staticPublishPath: apps/web/dist
+    envVars:
+      - key: VITE_APP_URL
+        value: https://www.droplinemethod.com
+      # Set when the Mac App Store listing is live (e.g. https://apps.apple.com/app/dropline/idXXXXXXXXX)
+      - key: VITE_MAC_APP_STORE_URL
+        sync: false
+    pullRequestPreviewsEnabled: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /.well-known/apple-app-site-association
+        name: Content-Type
+        value: application/json
+      - path: /apple-app-site-association
+        name: Content-Type
+        value: application/json
+      - path: /manifest.webmanifest
+        name: Content-Type
+        value: application/manifest+json
+
+# Custom domains: Render Dashboard → droplinemethod.com + www.droplinemethod.com

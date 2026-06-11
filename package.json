@@ -1,0 +1,27 @@
+{
+  "name": "dropline",
+  "version": "1.0.0",
+  "description": "Dropline — web app and Mac desktop writing method",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @dropline-method-3/web",
+    "dev:desktop": "concurrently -k \"npm run dev:web\" \"wait-on http://localhost:5173 && npm run start:dev --workspace @dropline-method-3/desktop\"",
+    "start": "npm run dev:desktop",
+    "build:web": "npm run build --workspace @dropline-method-3/web",
+    "build:mac": "npm run build:signed --workspace @dropline-method-3/desktop",
+    "build:mac:unsigned": "npm run build:unsigned --workspace @dropline-method-3/desktop",
+    "build:mas": "npm run build:mas --workspace @dropline-method-3/desktop",
+    "icons:desktop": "npm run icons --workspace @dropline-method-3/desktop",
+    "typecheck": "npm run typecheck --workspace @dropline-method-3/web",
+    "preview:web": "npm run preview --workspace @dropline-method-3/web"
+  },
+  "devDependencies": {
+    "7zip-bin": "^5.2.0",
+    "concurrently": "^9.1.2",
+    "wait-on": "^8.0.3"
+  }
+}
