@@ -13,7 +13,9 @@ import {
 } from './lib/project';
 import ResizeHandle from './components/ResizeHandle';
 import { isImmediateAutosave, isManualAutosave, normaliseAutosaveInterval } from './lib/autosave';
-import { downloadFile, loadAutosave, saveAutosave } from './lib/storage';
+import { downloadFile, saveAutosave } from './lib/storage';
+import { createBook, deleteBook, loadBook, migrateLegacyAutosaveToLibrary, upsertBook } from './lib/library';
+import BookLibrary from './components/BookLibrary';
 import { buildMarkdown } from './lib/markdown';
 import { getBridge } from './lib/bridge';
 import Sidebar from './components/Sidebar';
@@ -41,12 +43,15 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
+type AppScreen = 'library' | 'editor';
+
 export default function App() {
-  const [project, setProject] = useState<Project>(() => {
-    const saved = loadAutosave();
-    if (!saved) return createDefaultProject();
-    return migrateProject(saved);
-  });
+  migrateLegacyAutosaveToLibrary();
+
+  const [appScreen, setAppScreen] = useState<AppScreen>('library');
+  const [activeBookId, setActiveBookId] = useState<string | null>(null);
+  const [libraryRefresh, setLibraryRefresh] = useState(0);
+  const [project, setProject] = useState<Project>(() => createDefaultProject());
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(
     () => project.chapters[0]?.id ?? null,
   );
@@ -88,8 +93,9 @@ export default function App() {
     pendingAutosaveRef.current = null;
     clearAutosaveTimer();
     saveAutosave(proj);
+    if (activeBookId) upsertBook(activeBookId, proj);
     setAutosaveLabel(label ?? `Autosaved ${new Date().toLocaleTimeString()}`);
-  }, [clearAutosaveTimer]);
+  }, [clearAutosaveTimer, activeBookId]);
 
   const scheduleAutosave = useCallback((proj: Project) => {
     const interval = normaliseAutosaveInterval(proj.settings.autosaveIntervalSec);
@@ -157,17 +163,84 @@ export default function App() {
     setFileName(name);
     flushAutosave(next, label);
     getBridge()?.setDirty?.(false);
+    setAppScreen('editor');
+  }
+
+  function openBookEditor(bookId: string, next: Project, name: string | null = null) {
+    setActiveBookId(bookId);
+    loadProject(next, 'Opened book', name);
+  }
+
+  function persistActiveBook() {
+    if (!activeBookId) return;
+    const current = pendingAutosaveRef.current ?? project;
+    upsertBook(activeBookId, current);
+  }
+
+  function goToLibrary() {
+    if (pendingAutosaveRef.current) {
+      flushAutosave(pendingAutosaveRef.current);
+    } else {
+      persistActiveBook();
+    }
+    setAppScreen('library');
+    setLibraryRefresh(k => k + 1);
+  }
+
+  function handleOpenBookFromLibrary(bookId: string) {
+    if (activeBookId === bookId && appScreen === 'editor') return;
+    if (!confirmDiscard()) return;
+    persistActiveBook();
+    const next = loadBook(bookId);
+    if (!next) {
+      window.alert('That book could not be loaded.');
+      setLibraryRefresh(k => k + 1);
+      return;
+    }
+    openBookEditor(bookId, next, null);
+  }
+
+  function handleCreateBook() {
+    if (!confirmDiscard()) return;
+    persistActiveBook();
+    const bookId = createBook(createDefaultProject());
+    const next = loadBook(bookId);
+    if (!next) return;
+    openBookEditor(bookId, next, null);
+  }
+
+  function handleDeleteBook(bookId: string) {
+    const book = loadBook(bookId);
+    const title = book?.title?.trim() || 'this book';
+    if (!window.confirm(`Delete “${title}”? This cannot be undone.`)) return;
+    deleteBook(bookId);
+    if (activeBookId === bookId) {
+      setActiveBookId(null);
+      setAppScreen('library');
+      setDirty(false);
+      getBridge()?.setDirty?.(false);
+    }
+    setLibraryRefresh(k => k + 1);
   }
 
   function handleNew() {
-    if (!confirmDiscard()) return;
-    loadProject(createDefaultProject(), 'New project', null);
+    handleCreateBook();
   }
 
   function handleOpenFile(data: string, path?: string) {
     if (!confirmDiscard()) return;
     try {
-      loadProject(migrateProject(JSON.parse(data)), path ? `Opened ${path.split(/[\\/]/).pop()}` : 'Opened project', path ?? null);
+      const imported = migrateProject(JSON.parse(data));
+      persistActiveBook();
+      const bookId = createBook(imported);
+      const next = loadBook(bookId);
+      if (!next) throw new Error('load failed');
+      openBookEditor(
+        bookId,
+        next,
+        path ? path.split(/[\\/]/).pop() ?? null : null,
+      );
+      setLibraryRefresh(k => k + 1);
     } catch {
       window.alert('Could not read that file — invalid project format.');
     }
@@ -223,7 +296,11 @@ export default function App() {
     bridge?.onFileOpened?.(({ data, filePath }) => handleOpenFile(data, filePath));
     bridge?.onOpenSample?.(() => {
       if (!confirmDiscard()) return;
-      loadProject(createSampleProject(), 'Sample project loaded', null);
+      persistActiveBook();
+      const bookId = createBook(createSampleProject());
+      const next = loadBook(bookId);
+      if (next) openBookEditor(bookId, next, null);
+      setLibraryRefresh(k => k + 1);
     });
   }, []);
 
@@ -460,32 +537,58 @@ export default function App() {
           </div>
         </div>
         <div className="app-chrome-menus">
-          <AppMenuBar
-            viewMode={viewMode}
-            inspectorShown={inspectorShown}
-            focusMode={focusMode}
-            showInEditor={viewMode === 'editor' && !!selectedChapter}
-            canDuplicateChapter={!!selectedChapterId}
-            onNew={handleNew}
-            onOpen={() => openInputRef.current?.click()}
-            onSave={() => void handleSave()}
-            onExportMarkdown={() => void handleExportMarkdown()}
-            onOpenSample={() => {
-              if (!confirmDiscard()) return;
-              loadProject(createSampleProject(), 'Sample project', null);
-            }}
-            onViewChange={setViewMode}
-            onToggleInspector={handleToggleInspector}
-            onExitFocusMode={handleExitFocusMode}
-            onToggleFocusMode={handleToggleFocusMode}
-            onCompile={() => setShowCompile(true)}
-            onDuplicateChapter={handleDuplicateChapter}
-            onOpenHelp={() => setShowHelp(true)}
-          />
+          {appScreen === 'editor' ? (
+            <>
+              <button
+                type="button"
+                onClick={goToLibrary}
+                className="text-sm font-semibold px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--teal-dark)] shrink-0 mr-1"
+              >
+                All Books
+              </button>
+              <AppMenuBar
+                viewMode={viewMode}
+                inspectorShown={inspectorShown}
+                focusMode={focusMode}
+                showInEditor={viewMode === 'editor' && !!selectedChapter}
+                canDuplicateChapter={!!selectedChapterId}
+                onNew={handleNew}
+                onOpen={() => openInputRef.current?.click()}
+                onSave={() => void handleSave()}
+                onExportMarkdown={() => void handleExportMarkdown()}
+                onOpenSample={() => {
+                  if (!confirmDiscard()) return;
+                  persistActiveBook();
+                  const bookId = createBook(createSampleProject());
+                  const next = loadBook(bookId);
+                  if (next) openBookEditor(bookId, next, null);
+                  setLibraryRefresh(k => k + 1);
+                }}
+                onViewChange={setViewMode}
+                onToggleInspector={handleToggleInspector}
+                onExitFocusMode={handleExitFocusMode}
+                onToggleFocusMode={handleToggleFocusMode}
+                onCompile={() => setShowCompile(true)}
+                onDuplicateChapter={handleDuplicateChapter}
+                onOpenHelp={() => setShowHelp(true)}
+              />
+            </>
+          ) : (
+            <span className="text-sm font-semibold text-[var(--ink)] px-2">All Books</span>
+          )}
         </div>
         <div className="app-chrome-actions desktop-no-drag">
+          {appScreen === 'library' && (
+            <button
+              type="button"
+              onClick={() => setShowHelp(true)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
+            >
+              Help
+            </button>
+          )}
           {showOpenInApp && <OpenInAppButton />}
-          {dirty && (
+          {appScreen === 'editor' && dirty && (
             <span className="text-xs text-[var(--muted)] shrink-0 whitespace-nowrap">Unsaved</span>
           )}
           <input
@@ -505,6 +608,24 @@ export default function App() {
         </div>
       </header>
 
+      {appScreen === 'library' ? (
+        <BookLibrary
+          refreshKey={libraryRefresh}
+          onOpenBook={handleOpenBookFromLibrary}
+          onCreateBook={handleCreateBook}
+          onImportFile={() => openInputRef.current?.click()}
+          onOpenSample={() => {
+            if (!confirmDiscard()) return;
+            persistActiveBook();
+            const bookId = createBook(createSampleProject());
+            const next = loadBook(bookId);
+            if (next) openBookEditor(bookId, next, null);
+            setLibraryRefresh(k => k + 1);
+          }}
+          onDeleteBook={handleDeleteBook}
+        />
+      ) : (
+      <>
       {focusMode && (
         <div className="shrink-0 bg-[var(--accent-soft)] border-b border-[var(--accent-muted)] px-4 py-2 flex items-center justify-between gap-3 text-sm">
           <span className="text-[var(--ink)]">
@@ -576,8 +697,10 @@ export default function App() {
         viewMode={viewMode}
         focusMode={focusMode}
       />
+      </>
+      )}
 
-      {showCompile && (
+      {showCompile && appScreen === 'editor' && (
         <CompileModal
           project={project}
           selectedChapterId={selectedChapterId}
@@ -586,7 +709,7 @@ export default function App() {
         />
       )}
 
-      {compiled && (
+      {compiled && appScreen === 'editor' && (
         <CompiledManuscriptModal
           project={project}
           text={compiled.text}

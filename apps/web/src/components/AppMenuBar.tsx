@@ -3,15 +3,11 @@ import {
   Bold,
   Italic,
   Underline,
-  Indent,
-  Outdent,
-  List,
   LayoutGrid,
   Eye,
   FileOutput,
   PanelRight,
   PenLine,
-  Type,
   Minus,
   Plus,
   FilePlus,
@@ -24,8 +20,7 @@ import {
   CircleHelp,
 } from 'lucide-react';
 import type { ViewMode } from '../lib/types';
-import { useEditorFormat, FONT_LABELS, type EditorFont } from '../lib/editor-format-context';
-import { LIST_STYLE_LABELS, type ListStyle } from '../lib/list-format';
+import { useEditorFormat } from '../lib/editor-format-context';
 import DropdownMenu, { type DropdownItem } from './DropdownMenu';
 
 const sep = (id: string): DropdownItem => ({ id, type: 'separator' });
@@ -151,30 +146,6 @@ export default function AppMenuBar({
     },
     sep('fmt-sep-1'),
     {
-      id: 'indent',
-      label: 'Indent',
-      icon: <Indent size={15} />,
-      shortcut: '⌘]',
-      disabled: !fmt.canFormat,
-      onClick: fmt.applyIndent,
-    },
-    {
-      id: 'outdent',
-      label: 'Outdent',
-      icon: <Outdent size={15} />,
-      shortcut: '⌘[',
-      disabled: !fmt.canFormat,
-      onClick: fmt.applyOutdent,
-    },
-    ...(['bullet', 'dash', 'circle', 'number'] as ListStyle[]).map(style => ({
-      id: `list-${style}`,
-      label: LIST_STYLE_LABELS[style],
-      icon: <List size={15} />,
-      disabled: !fmt.canFormat,
-      onClick: () => fmt.applyList(style),
-    })),
-    sep('fmt-sep-2'),
-    {
       id: 'size-down',
       label: 'Decrease font size',
       icon: <Minus size={15} />,
@@ -188,14 +159,6 @@ export default function AppMenuBar({
       disabled: !fmt.canFormat,
       onClick: fmt.increaseFontSize,
     },
-    ...(['system', 'georgia', 'times', 'palatino', 'helvetica'] as EditorFont[]).map(font => ({
-      id: `font-${font}`,
-      label: `Font: ${FONT_LABELS[font]}`,
-      icon: <Type size={15} />,
-      active: fmt.font === font,
-      disabled: !fmt.canFormat,
-      onClick: () => fmt.setFont(font),
-    })),
   ];
 
   const viewItems: DropdownItem[] = [

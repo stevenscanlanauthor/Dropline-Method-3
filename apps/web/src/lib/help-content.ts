@@ -46,7 +46,11 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         type: 'p',
-        text: 'Open the sample project from File → Open Sample Project to explore a filled-in example.',
+        text: 'When you open Dropline, your books are listed on the All Books screen. Pick one to edit, or create a new book. Use the All Books button at the top to return to your library anytime.',
+      },
+      {
+        type: 'p',
+        text: 'Open the sample book from the library or File → Open Sample Project to explore a filled-in example.',
       },
     ],
   },
@@ -318,7 +322,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         type: 'p',
-        text: 'The same commands live under the Format menu when the editor view is active.',
+        text: 'The Format menu (when the editor is active) includes bold, italic, underline, and font size only. Use the toolbar for fonts, list styles, and indentation.',
       },
     ],
   },
@@ -482,7 +486,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         type: 'p',
-        text: 'Font, size, and list style choices are in the Format toolbar and Format menu — no dedicated keys for those yet.',
+        text: 'Font, size, and list style choices are in the format toolbar — no dedicated keys for those yet.',
       },
       {
         type: 'h3',
