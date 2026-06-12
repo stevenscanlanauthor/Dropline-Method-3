@@ -47,6 +47,7 @@ interface Props {
   onCompile: () => void;
   onDuplicateChapter: () => void;
   onOpenHelp: () => void;
+  onToggleFocusMode: () => void;
 }
 
 export default function AppMenuBar({
@@ -66,6 +67,7 @@ export default function AppMenuBar({
   onCompile,
   onDuplicateChapter,
   onOpenHelp,
+  onToggleFocusMode,
 }: Props) {
   const fmt = useEditorFormat();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -206,7 +208,7 @@ export default function AppMenuBar({
       id: 'editor',
       label: 'Editor',
       icon: <PenLine size={15} />,
-      active: viewMode === 'editor',
+      active: viewMode === 'editor' && !focusMode,
       onClick: () => onViewChange('editor'),
     },
     {
@@ -226,14 +228,6 @@ export default function AppMenuBar({
       onClick: () => onViewChange('preview'),
     },
     sep('view-sep-1'),
-    ...(focusMode
-      ? [{
-          id: 'exit-focus',
-          label: 'Exit Focus Mode',
-          icon: <PenLine size={15} />,
-          onClick: onExitFocusMode,
-        }]
-      : []),
     {
       id: 'inspector',
       label: inspectorShown ? 'Hide Inspector' : 'Show Inspector',
@@ -242,13 +236,21 @@ export default function AppMenuBar({
       active: inspectorShown,
       onClick: onToggleInspector,
     },
-    {
-      id: 'compile',
-      label: 'Compile Manuscript',
-      icon: <FileOutput size={15} />,
-      shortcut: '⇧⌘M',
-      onClick: onCompile,
-    },
+    sep('view-sep-2'),
+    focusMode
+      ? {
+          id: 'exit-focus',
+          label: 'Exit Focus Mode',
+          icon: <PenLine size={15} />,
+          shortcut: 'Esc',
+          onClick: onExitFocusMode,
+        }
+      : {
+          id: 'enter-focus',
+          label: 'Enter Focus Mode',
+          icon: <PenLine size={15} />,
+          onClick: onToggleFocusMode,
+        },
   ];
 
   const droplineItems: DropdownItem[] = [
@@ -262,23 +264,6 @@ export default function AppMenuBar({
     },
     sep('drop-sep-1'),
     {
-      id: 'drop-preview',
-      label: 'Preview Manuscript',
-      icon: <Eye size={15} />,
-      shortcut: '⇧⌘P',
-      active: viewMode === 'preview',
-      onClick: () => onViewChange('preview'),
-    },
-    {
-      id: 'drop-corkboard',
-      label: 'Corkboard',
-      icon: <LayoutGrid size={15} />,
-      shortcut: '⇧⌘K',
-      active: viewMode === 'corkboard',
-      onClick: () => onViewChange('corkboard'),
-    },
-    sep('drop-sep-2'),
-    {
       id: 'drop-compile',
       label: 'Compile Manuscript',
       icon: <FileOutput size={15} />,
@@ -291,24 +276,12 @@ export default function AppMenuBar({
       icon: <Download size={15} />,
       onClick: onExportMarkdown,
     },
-    sep('drop-sep-3'),
-    ...(focusMode
-      ? [{
-          id: 'drop-exit-focus',
-          label: 'Exit Focus Mode',
-          icon: <PenLine size={15} />,
-          onClick: onExitFocusMode,
-        }]
-      : []),
-    {
-      id: 'drop-inspector',
-      label: inspectorShown ? 'Hide Inspector' : 'Show or Hide Inspector',
-      icon: <PanelRight size={15} />,
-      shortcut: '⇧⌘I',
-      active: inspectorShown,
-      onClick: onToggleInspector,
-    },
   ];
+
+  const viewMenuActive =
+    viewMode !== 'editor' || inspectorShown || focusMode;
+  const formatMenuActive =
+    fmt.boldActive || fmt.italicActive || fmt.underlineActive;
 
   const helpItems: DropdownItem[] = [
     {
@@ -328,13 +301,28 @@ export default function AppMenuBar({
   ];
 
   return (
-    <div className="desktop-no-drag desktop-menubar shrink-0 border-b border-[var(--border)] bg-white px-4 py-1.5 flex flex-wrap items-center gap-1 overflow-visible">
+    <nav
+      className="desktop-no-drag desktop-menubar flex flex-wrap items-center gap-0.5 overflow-visible py-1"
+      aria-label="Application menu"
+    >
       <DropdownMenu label="File" items={fileItems} {...menuProps('file')} />
       <DropdownMenu label="Edit" items={editItems} {...menuProps('edit')} />
-      {showInEditor && <DropdownMenu label="Format" items={formatItems} {...menuProps('format')} />}
-      <DropdownMenu label="View" items={viewItems} {...menuProps('view')} />
+      <DropdownMenu
+        label="View"
+        items={viewItems}
+        menuActive={viewMenuActive}
+        {...menuProps('view')}
+      />
+      {viewMode === 'editor' && (
+        <DropdownMenu
+          label="Format"
+          items={formatItems}
+          menuActive={formatMenuActive}
+          {...menuProps('format')}
+        />
+      )}
       <DropdownMenu label="Dropline" items={droplineItems} {...menuProps('dropline')} />
       <DropdownMenu label="Help" items={helpItems} {...menuProps('help')} />
-    </div>
+    </nav>
   );
 }

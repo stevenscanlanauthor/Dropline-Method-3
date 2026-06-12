@@ -30,10 +30,10 @@ export default function Corkboard({ chapters, selectedId, onSelect, onReorder, o
   }
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-[var(--stone)]/30">
-      <div className="px-4 py-2 border-b border-[var(--border)] bg-white flex justify-between items-center">
-        <span className="text-sm font-medium">Corkboard</span>
-        <button type="button" onClick={onReturn} className="text-xs text-[var(--accent)] hover:underline">
+    <div className="flex-1 flex flex-col min-w-0 bg-[var(--surface-muted)]">
+      <div className="panel-header">
+        <span className="panel-header-title">Corkboard</span>
+        <button type="button" onClick={onReturn} className="panel-header-action">
           Return to editor
         </button>
       </div>
@@ -69,7 +69,7 @@ export default function Corkboard({ chapters, selectedId, onSelect, onReorder, o
           })}
         </div>
       </div>
-      <p className="text-xs text-[var(--muted)] px-4 py-2 border-t border-[var(--border)] bg-white text-center">
+      <p className="text-xs text-[var(--muted)] px-4 py-2 border-t border-[var(--border)] bg-[var(--surface)] text-center">
         Corkboard uses Drop 1 for the title and Drop 2 for the one-sentence summary. Drag cards to reorder. Double-click to open in the editor.
       </p>
     </div>

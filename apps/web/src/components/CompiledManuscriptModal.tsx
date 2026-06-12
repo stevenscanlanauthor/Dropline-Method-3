@@ -49,17 +49,17 @@ export default function CompiledManuscriptModal({ project, text, chapters, inclu
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-xl" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-[var(--border)] flex justify-between items-start gap-4">
+      <div className="bg-[var(--surface)] rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-[var(--shadow-md)] border border-[var(--border)]" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-[var(--border)] bg-[var(--highlight)] flex justify-between items-start gap-4">
           <div>
             <h2 className="font-semibold text-[var(--ink)]">Compiled manuscript</h2>
             <p className="text-xs text-[var(--muted)] mt-0.5">{project.title} · {project.authorName || 'Author'}</p>
           </div>
           <div className="flex gap-2 shrink-0">
-            <button type="button" onClick={copyText} className="text-sm px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white">
+            <button type="button" onClick={copyText} className="panel-header-action text-sm">
               Copy
             </button>
-            <button type="button" onClick={onClose} className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)]">
+            <button type="button" onClick={onClose} className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]">
               Close
             </button>
           </div>

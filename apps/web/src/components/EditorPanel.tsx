@@ -102,15 +102,15 @@ export default function EditorPanel({
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-[var(--mist)]">
-      <div className="chapter-title-row border-b border-[var(--border)] bg-white w-full">
+      <div className="chapter-title-row border-b border-[var(--border)] bg-[var(--surface)] w-full">
         <label className="chapter-title-field desktop-no-drag flex items-center gap-2 px-4 py-2.5 min-w-0">
-          <span className="text-xs text-[var(--muted)] whitespace-nowrap shrink-0">Chapter/Scene title</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)] whitespace-nowrap shrink-0">Drop 1</span>
           <input
             type="text"
             value={chapter.title}
             onChange={e => onTitleChange(e.target.value)}
-            className="flex-1 min-w-0 font-semibold text-sm border border-[var(--border)] rounded-lg px-3 py-1.5"
-            placeholder="Chapter/Scene title"
+            className="field-input flex-1 min-w-0 font-semibold"
+            placeholder="Chapter / scene title"
           />
         </label>
         <div className="chapter-drop-bar desktop-no-drag">
@@ -134,8 +134,9 @@ export default function EditorPanel({
         </div>
       </div>
 
-      <p className="px-4 py-2 text-xs text-[var(--muted)] bg-white border-b border-[var(--border)]">
-        <span className="font-medium text-[var(--ink)]">{DROP_KIND_META[selectedDrop].title}: </span>
+      <p className="drop-help-strip">
+        <strong>{DROP_KIND_META[selectedDrop].title}</strong>
+        {' — '}
         {DROP_HELP[selectedDrop]}
       </p>
 
@@ -172,7 +173,7 @@ export default function EditorPanel({
                 onChange={e => handleChange(e.target.value)}
                 onBlur={() => persist(localContent)}
                 onKeyDown={handleDrop4KeyDown}
-                className="w-full min-h-[420px] resize-y border border-[var(--border)] rounded-xl p-6 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] text-base leading-relaxed"
+                className="w-full min-h-[420px] resize-y field-input p-6 text-base leading-relaxed"
                 style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
                 placeholder={selectedDrop === 'drop4' ? '• First note…' : 'Start writing…'}
               />

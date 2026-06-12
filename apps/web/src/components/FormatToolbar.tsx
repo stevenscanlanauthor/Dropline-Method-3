@@ -11,7 +11,7 @@ export default function FormatToolbar() {
   if (!fmt.canFormat) return null;
 
   return (
-    <div className="format-bar shrink-0 border-b border-[var(--border)] bg-white px-4 py-2 flex flex-wrap items-center gap-2 w-full">
+    <div className="format-bar shrink-0 border-b border-[var(--border)] px-4 py-2 flex flex-wrap items-center gap-2 w-full">
       <div className="format-group">
         <button
           type="button"

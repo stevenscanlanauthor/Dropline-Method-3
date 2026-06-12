@@ -20,6 +20,8 @@ interface Props {
   variant?: 'toolbar' | 'menubar';
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Highlight menubar label when a child item is active (e.g. View → Corkboard). */
+  menuActive?: boolean;
 }
 
 export default function DropdownMenu({
@@ -30,6 +32,7 @@ export default function DropdownMenu({
   variant = 'toolbar',
   open: controlledOpen,
   onOpenChange,
+  menuActive = false,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [internalOpen, setInternalOpen] = useState(false);
@@ -47,14 +50,13 @@ export default function DropdownMenu({
     function onDocClick(e: MouseEvent) {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     }
-    // Use click (not mousedown) so opening a menu on the same gesture does not instantly dismiss it.
     document.addEventListener('click', onDocClick, true);
     return () => document.removeEventListener('click', onDocClick, true);
   }, [open]);
 
   const btnClass =
     variant === 'menubar'
-      ? `menu-btn ${open ? 'menu-btn-open' : ''}`
+      ? `menu-btn ${open ? 'menu-btn-open' : ''} ${menuActive ? 'menu-btn-has-active' : ''}`
       : 'toolbar-btn';
 
   return (
@@ -74,7 +76,7 @@ export default function DropdownMenu({
       {open && (
         <div
           role="menu"
-          className={`absolute top-full mt-1 z-[100] min-w-[220px] rounded-lg border border-[var(--border)] bg-white py-1 shadow-lg ${
+          className={`absolute top-full mt-1 z-[100] min-w-[240px] rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-[var(--shadow-md)] ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
@@ -88,19 +90,17 @@ export default function DropdownMenu({
                 type="button"
                 role="menuitem"
                 disabled={item.disabled}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--mist)] disabled:opacity-40 disabled:cursor-not-allowed ${
-                  item.active ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium' : 'text-[var(--ink)]'
-                }`}
+                className={`menu-item ${item.active ? 'menu-item-active' : ''}`}
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   item.onClick?.();
                   setOpen(false);
                 }}
               >
-                {item.icon && <span className="w-4 shrink-0 flex items-center justify-center">{item.icon}</span>}
+                {item.icon && <span className="menu-item-icon">{item.icon}</span>}
                 <span className="flex-1">{item.label}</span>
                 {item.shortcut && (
-                  <span className="text-xs text-[var(--muted)] ml-4 shrink-0">{item.shortcut}</span>
+                  <span className="text-[11px] text-[var(--muted)] ml-3 shrink-0 font-mono">{item.shortcut}</span>
                 )}
               </button>
             );

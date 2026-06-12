@@ -41,14 +41,14 @@ export default function BulletListMenu({ disabled, onSelect }: Props) {
       {open && (
         <div
           role="menu"
-          className="absolute top-full left-0 mt-1 z-50 min-w-[180px] rounded-lg border border-[var(--border)] bg-white py-1 shadow-lg"
+          className="absolute top-full left-0 mt-1 z-50 min-w-[180px] rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-[var(--shadow-md)]"
         >
           {STYLES.map(style => (
             <button
               key={style}
               type="button"
               role="menuitem"
-              className="w-full px-3 py-2 text-left text-sm text-[var(--ink)] hover:bg-[var(--mist)]"
+              className="menu-item"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 onSelect(style);

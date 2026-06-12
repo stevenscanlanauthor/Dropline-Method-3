@@ -409,6 +409,17 @@ export default function App() {
     });
   }, [scheduleAutosave]);
 
+  const handleToggleFocusMode = useCallback(() => {
+    setProject(prev => {
+      const next = {
+        ...prev,
+        settings: { ...prev.settings, focusMode: !prev.settings.focusMode },
+      };
+      scheduleAutosave(next);
+      return next;
+    });
+  }, [scheduleAutosave]);
+
   useEffect(() => {
     if (!project.settings.focusMode) return;
     if (showCompile || compiled) return;
@@ -440,70 +451,70 @@ export default function App() {
       onCompile={() => setShowCompile(true)}
     />
     <div className="h-screen flex flex-col">
-      <header className={`shrink-0 border-b border-[var(--border)] bg-white px-4 py-3 flex items-center gap-4 ${isDesktop ? 'desktop-titlebar' : ''}`}>
-        <div className={`flex items-center gap-2 min-w-0 flex-1 ${isDesktop ? 'desktop-drag' : ''}`}>
-          <img src={`${import.meta.env.BASE_URL}logo-dropline-icon.png`} alt="" className="h-8 w-8 object-contain shrink-0" aria-hidden />
-          <span className="text-lg font-semibold tracking-tight text-[var(--ink)] shrink-0">Dropline</span>
-          <p className="hidden sm:block text-xs text-[var(--muted)] italic truncate">One drop at a time. One draft completed.</p>
+      <header className={`app-chrome shrink-0 flex items-stretch min-h-[3rem] ${isDesktop ? 'desktop-titlebar' : ''}`}>
+        <div className={`app-chrome-brand ${isDesktop ? 'desktop-drag' : ''}`}>
+          <img src={`${import.meta.env.BASE_URL}logo-dropline-icon.png`} alt="" className="h-7 w-7 object-contain shrink-0" aria-hidden />
+          <div className="min-w-0 hidden sm:block">
+            <span className="text-sm font-semibold tracking-tight text-[var(--ink)] block leading-tight">Dropline</span>
+            <span className="text-[10px] text-[var(--muted)] italic truncate block max-w-[12rem]">One drop at a time</span>
+          </div>
         </div>
-        <div className="desktop-no-drag flex items-center gap-4 shrink-0">
-        {showOpenInApp && <OpenInAppButton />}
-        {dirty && (
-          <span className="text-xs text-[var(--muted)] shrink-0">Unsaved changes</span>
-        )}
-        <input
-          ref={openInputRef}
-          type="file"
-          accept=".dropline3,.json,application/json"
-          hidden
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => handleOpenFile(String(reader.result), file.name);
-            reader.readAsText(file);
-            e.target.value = '';
-          }}
-        />
+        <div className="app-chrome-menus">
+          <AppMenuBar
+            viewMode={viewMode}
+            inspectorShown={inspectorShown}
+            focusMode={focusMode}
+            showInEditor={viewMode === 'editor' && !!selectedChapter}
+            canDuplicateChapter={!!selectedChapterId}
+            onNew={handleNew}
+            onOpen={() => openInputRef.current?.click()}
+            onSave={() => void handleSave()}
+            onExportMarkdown={() => void handleExportMarkdown()}
+            onOpenSample={() => {
+              if (!confirmDiscard()) return;
+              loadProject(createSampleProject(), 'Sample project', null);
+            }}
+            onViewChange={setViewMode}
+            onToggleInspector={handleToggleInspector}
+            onExitFocusMode={handleExitFocusMode}
+            onToggleFocusMode={handleToggleFocusMode}
+            onCompile={() => setShowCompile(true)}
+            onDuplicateChapter={handleDuplicateChapter}
+            onOpenHelp={() => setShowHelp(true)}
+          />
+        </div>
+        <div className="app-chrome-actions desktop-no-drag">
+          {showOpenInApp && <OpenInAppButton />}
+          {dirty && (
+            <span className="text-xs text-[var(--muted)] shrink-0 whitespace-nowrap">Unsaved</span>
+          )}
+          <input
+            ref={openInputRef}
+            type="file"
+            accept=".dropline3,.json,application/json"
+            hidden
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => handleOpenFile(String(reader.result), file.name);
+              reader.readAsText(file);
+              e.target.value = '';
+            }}
+          />
         </div>
       </header>
 
       {focusMode && (
-        <div className="shrink-0 bg-[var(--accent-soft)] border-b border-[var(--border)] px-4 py-2 flex items-center justify-between gap-3 text-sm">
+        <div className="shrink-0 bg-[var(--accent-soft)] border-b border-[var(--accent-muted)] px-4 py-2 flex items-center justify-between gap-3 text-sm">
           <span className="text-[var(--ink)]">
-            Focus mode — sidebar and inspector are hidden. Press <kbd className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-white text-xs font-mono">Esc</kbd> to exit.
+            Focus mode — sidebar and inspector are hidden. Press <kbd>Esc</kbd> to exit.
           </span>
-          <button
-            type="button"
-            onClick={handleExitFocusMode}
-            className="px-3 py-1 rounded-md bg-[var(--accent)] text-white text-xs font-medium hover:opacity-90"
-          >
+          <button type="button" onClick={handleExitFocusMode} className="panel-header-action text-xs">
             Exit Focus Mode
           </button>
         </div>
       )}
-
-      <AppMenuBar
-        viewMode={viewMode}
-        inspectorShown={inspectorShown}
-        focusMode={focusMode}
-        showInEditor={viewMode === 'editor' && !!selectedChapter}
-        canDuplicateChapter={!!selectedChapterId}
-        onNew={handleNew}
-        onOpen={() => openInputRef.current?.click()}
-        onSave={() => void handleSave()}
-        onExportMarkdown={() => void handleExportMarkdown()}
-        onOpenSample={() => {
-          if (!confirmDiscard()) return;
-          loadProject(createSampleProject(), 'Sample project', null);
-        }}
-        onViewChange={setViewMode}
-        onToggleInspector={handleToggleInspector}
-        onExitFocusMode={handleExitFocusMode}
-        onCompile={() => setShowCompile(true)}
-        onDuplicateChapter={handleDuplicateChapter}
-        onOpenHelp={() => setShowHelp(true)}
-      />
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {!focusMode && viewMode === 'editor' && (
@@ -557,7 +568,13 @@ export default function App() {
         )}
       </div>
 
-      <StatusBar chapter={selectedChapter} chapters={project.chapters} autosaveLabel={autosaveLabel} />
+      <StatusBar
+        chapter={selectedChapter}
+        chapters={project.chapters}
+        autosaveLabel={autosaveLabel}
+        viewMode={viewMode}
+        focusMode={focusMode}
+      />
 
       {showCompile && (
         <CompileModal

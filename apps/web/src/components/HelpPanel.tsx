@@ -125,8 +125,8 @@ export default function HelpPanel({ initialTopicId, onClose }: Props) {
                         onClick={() => setActiveId(topic.id)}
                         className={`w-full text-left text-sm px-2 py-1.5 rounded-lg leading-snug ${
                           activeId === topic.id
-                            ? 'bg-white text-[var(--accent)] font-medium shadow-sm'
-                            : 'text-[var(--ink)] hover:bg-white/70'
+                            ? 'bg-[var(--surface)] text-[var(--teal-dark)] font-semibold shadow-[var(--shadow-sm)]'
+                            : 'text-[var(--ink)] hover:bg-[var(--surface)]/80'
                         }`}
                       >
                         {topic.title}
