@@ -18,7 +18,7 @@ export const HELP_SECTION_ORDER = [
   'Formatting',
   'Projects & files',
   'Compile & export',
-  'Keyboard shortcuts',
+  'Key functions',
 ] as const;
 
 export const HELP_TOPICS: HelpTopic[] = [
@@ -253,7 +253,14 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         type: 'p',
-        text: 'Read-only view of compiled Drop 6 text for the whole book. Open via View → Preview Manuscript or ⇧⌘P.',
+        text: 'Shows a title-page mockup plus your compiled Drop 6 text. Open via View → Preview Manuscript or ⇧⌘P (press again to return to the editor).',
+      },
+      {
+        type: 'ul',
+        items: [
+          'Return to editor — button in the preview header, View → Editor, or ⇧⌘P.',
+          '⇧⌘K — switch to Corkboard from preview.',
+        ],
       },
     ],
   },
@@ -355,6 +362,29 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
   },
   {
+    id: 'title-page',
+    section: 'Compile & export',
+    title: 'Title page',
+    blocks: [
+      {
+        type: 'p',
+        text: 'There is no separate title-page editor. Enter your title-page details in the Inspector (right panel): Book title, Author name, and Contact (optional).',
+      },
+      {
+        type: 'h3',
+        text: 'At compile time',
+      },
+      {
+        type: 'p',
+        text: 'When you compile (⇧⌘M), check Include title page to prepend author, contact (if set), and book title before chapter text in exports.',
+      },
+      {
+        type: 'p',
+        text: 'Preview Manuscript shows a visual title-page mockup using the same Inspector fields. Working promise appears in preview only — it is not added to compiled exports.',
+      },
+    ],
+  },
+  {
     id: 'compile',
     section: 'Compile & export',
     title: 'Compile manuscript',
@@ -377,7 +407,16 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         type: 'p',
-        text: 'Review the compiled text, copy to clipboard, or export Plain text (.txt) or DOCX. PDF and Scrivener import formats are planned for a future update.',
+        text: 'Review the compiled text, copy to clipboard, or export:',
+      },
+      {
+        type: 'ul',
+        items: [
+          'Plain text (.txt)',
+          'PDF',
+          'DOCX (Word)',
+          'Scrivener import (.zip of RTF files — use File → Import → Files… in Scrivener)',
+        ],
       },
       {
         type: 'h3',
@@ -391,29 +430,107 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     id: 'shortcuts',
-    section: 'Keyboard shortcuts',
-    title: 'Keyboard shortcuts',
+    section: 'Key functions',
+    title: 'Key functions',
     blocks: [
       {
         type: 'p',
-        text: 'On Windows/Linux, use Ctrl instead of ⌘ (Command).',
+        text: 'Prefer the keyboard? These shortcuts work in the website and the Mac app. On Windows or Linux, use Ctrl where Mac shows ⌘ (Command). Most editor shortcuts apply when your cursor is in a drop field.',
+      },
+      {
+        type: 'h3',
+        text: 'File & project',
       },
       {
         type: 'shortcuts',
         rows: [
           { keys: '⌘N', action: 'New project' },
-          { keys: '⌘O', action: 'Open project' },
+          { keys: '⌘O', action: 'Open project…' },
           { keys: '⌘S', action: 'Save project' },
-          { keys: '⌘Z / ⇧⌘Z', action: 'Undo / Redo' },
-          { keys: '⌘B / ⌘I / ⌘U', action: 'Bold / Italic / Underline' },
-          { keys: '⌘] / ⌘[', action: 'Indent / Outdent' },
-          { keys: '⇧⌘D', action: 'Duplicate chapter' },
+          { keys: '⇧⌘S', action: 'Save As… (Mac app only)' },
+        ],
+      },
+      {
+        type: 'h3',
+        text: 'Edit (in editor)',
+      },
+      {
+        type: 'shortcuts',
+        rows: [
+          { keys: '⌘Z', action: 'Undo' },
+          { keys: '⇧⌘Z', action: 'Redo' },
+          { keys: '⌘X', action: 'Cut' },
+          { keys: '⌘C', action: 'Copy' },
+          { keys: '⌘V', action: 'Paste' },
+          { keys: '⌘A', action: 'Select all' },
+          { keys: 'Delete', action: 'Delete selection (Edit menu)' },
+        ],
+      },
+      {
+        type: 'h3',
+        text: 'Format (Drops 2, 3, 5 & 6)',
+      },
+      {
+        type: 'shortcuts',
+        rows: [
+          { keys: '⌘B', action: 'Bold' },
+          { keys: '⌘I', action: 'Italic' },
+          { keys: '⌘U', action: 'Underline' },
+          { keys: '⌘]', action: 'Indent' },
+          { keys: '⌘[', action: 'Outdent' },
+        ],
+      },
+      {
+        type: 'p',
+        text: 'Font, size, and list style choices are in the Format toolbar and Format menu — no dedicated keys for those yet.',
+      },
+      {
+        type: 'h3',
+        text: 'View & navigation',
+      },
+      {
+        type: 'shortcuts',
+        rows: [
           { keys: '⇧⌘K', action: 'Corkboard' },
-          { keys: '⇧⌘P', action: 'Preview manuscript' },
-          { keys: '⇧⌘M', action: 'Compile manuscript' },
+          { keys: '⇧⌘P', action: 'Preview manuscript / return to editor' },
           { keys: '⇧⌘I', action: 'Show or hide Inspector' },
-          { keys: 'Escape', action: 'Exit focus mode' },
-          { keys: '?', action: 'Open this help panel' },
+          { keys: '⇧⌘M', action: 'Compile manuscript' },
+        ],
+      },
+      {
+        type: 'h3',
+        text: 'Dropline',
+      },
+      {
+        type: 'shortcuts',
+        rows: [
+          { keys: '⇧⌘D', action: 'Duplicate chapter' },
+        ],
+      },
+      {
+        type: 'h3',
+        text: 'Help & focus',
+      },
+      {
+        type: 'shortcuts',
+        rows: [
+          { keys: '?', action: 'Open Help (when not typing in a field)' },
+          { keys: 'Escape', action: 'Close Help, or exit focus mode' },
+        ],
+      },
+      {
+        type: 'h3',
+        text: 'Mac app window (desktop only)',
+      },
+      {
+        type: 'shortcuts',
+        rows: [
+          { keys: '⌘+', action: 'Zoom in' },
+          { keys: '⌘−', action: 'Zoom out' },
+          { keys: '⌘0', action: 'Actual size' },
+          { keys: '⌃⌘F', action: 'Toggle full screen' },
+          { keys: '⌘W', action: 'Close window' },
+          { keys: '⌘M', action: 'Minimize window' },
         ],
       },
     ],

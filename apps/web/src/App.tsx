@@ -29,6 +29,7 @@ import StatusBar from './components/StatusBar';
 import { EditorFormatProvider } from './lib/editor-format-context';
 import NativeMenuBridge from './components/NativeMenuBridge';
 import OpenInAppButton from './components/OpenInAppButton';
+import OpenInAppLanding from './components/OpenInAppLanding';
 import { shouldOfferOpenInApp } from './lib/open-in-app';
 
 const SIDEBAR_MIN = 160;
@@ -245,7 +246,7 @@ export default function App() {
         handleDuplicateChapter();
       } else if (e.shiftKey && key === 'p') {
         e.preventDefault();
-        setViewMode('preview');
+        setViewMode(m => (m === 'preview' ? 'editor' : 'preview'));
       } else if (e.shiftKey && key === 'k') {
         e.preventDefault();
         setViewMode('corkboard');
@@ -419,6 +420,14 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [project.settings.focusMode, showCompile, compiled, handleExitFocusMode]);
+
+  const openInAppRoute =
+    typeof window !== 'undefined' &&
+    window.location.pathname.replace(/\/+$/, '') === '/open-in-app';
+
+  if (openInAppRoute) {
+    return <OpenInAppLanding />;
+  }
 
   return (
     <EditorFormatProvider>

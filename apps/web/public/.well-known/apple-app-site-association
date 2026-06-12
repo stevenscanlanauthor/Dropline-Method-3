@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["J4336BMPWW.com.dropline.app"],
+        "appIDs": ["J4336BMPWW.com.dropline.method3"],
         "components": [
           { "/": "/*" }
         ]

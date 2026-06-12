@@ -81,6 +81,30 @@ Sitemap: ${appUrl}/sitemap.xml
     },
     transformIndexHtml(html) {
       let out = html.replaceAll('__APP_URL__', appUrl);
+      const description =
+        'Dropline helps authors write one drop at a time — from chapter headings to a completed draft using the Dropline Method.';
+      const ogImage = `${appUrl}/logo-dropline-icon.png`;
+      const socialMeta = `    <meta property="og:title" content="Dropline — The Dropline Method" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:url" content="${appUrl}/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="${ogImage}" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Dropline — The Dropline Method" />
+    <meta name="twitter:description" content="${description}" />
+    <meta name="twitter:image" content="${ogImage}" />
+    <script type="application/ld+json">${JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Dropline',
+      url: `${appUrl}/`,
+      description,
+      applicationCategory: 'WritingApplication',
+      operatingSystem: 'Web, macOS',
+    })}</script>`;
+      if (!out.includes('og:title')) {
+        out = out.replace('</head>', `${socialMeta}\n  </head>`);
+      }
       if (macAppStoreUrl) {
         const appId = macAppStoreUrl.match(/id(\d+)/)?.[1];
         if (appId && !out.includes('apple-itunes-app')) {

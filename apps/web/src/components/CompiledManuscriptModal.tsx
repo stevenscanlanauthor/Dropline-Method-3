@@ -1,4 +1,4 @@
-import { downloadDocx } from '@dropline/core';
+import { downloadDocx, downloadScrivenerImport } from '@dropline/core';
 import type { Project } from '../lib/types';
 
 interface Props {
@@ -24,17 +24,27 @@ export default function CompiledManuscriptModal({ project, text, chapters, inclu
     URL.revokeObjectURL(url);
   }
 
+  function compileOptions() {
+    return {
+      title: project.title,
+      authorName: project.authorName,
+      authorContact: project.authorContact,
+      chapters: chapters.map(c => ({ id: c.id, title: c.title, drops: c.drops })),
+      includeTitlePage,
+    };
+  }
+
   function exportDocx() {
-    downloadDocx(
-      {
-        title: project.title,
-        authorName: project.authorName,
-        authorContact: project.authorContact,
-        chapters: chapters.map(c => ({ id: c.id, title: c.title, drops: c.drops })),
-        includeTitlePage,
-      },
-      project.title || 'manuscript',
-    );
+    downloadDocx(compileOptions(), project.title || 'manuscript');
+  }
+
+  async function exportPdf() {
+    const { downloadPdf } = await import('@dropline/core/pdf');
+    downloadPdf(compileOptions(), project.title || 'manuscript');
+  }
+
+  function exportScrivener() {
+    downloadScrivenerImport(compileOptions(), project.title || 'manuscript');
   }
 
   return (
@@ -55,12 +65,18 @@ export default function CompiledManuscriptModal({ project, text, chapters, inclu
           </div>
         </div>
         <pre className="flex-1 overflow-auto p-6 text-sm whitespace-pre-wrap serif-editor bg-[var(--mist)] m-0">{text}</pre>
-        <div className="p-3 border-t border-[var(--border)] flex gap-2 justify-end">
+        <div className="p-3 border-t border-[var(--border)] flex flex-wrap gap-2 justify-end">
           <button type="button" onClick={exportTxt} className="text-xs border border-[var(--border)] px-3 py-1.5 rounded-lg">
             Plain text
           </button>
-          <button type="button" onClick={exportDocx} className="text-xs bg-[var(--accent)] text-white px-3 py-1.5 rounded-lg">
+          <button type="button" onClick={exportPdf} className="text-xs border border-[var(--border)] px-3 py-1.5 rounded-lg">
+            PDF
+          </button>
+          <button type="button" onClick={exportDocx} className="text-xs border border-[var(--border)] px-3 py-1.5 rounded-lg">
             DOCX
+          </button>
+          <button type="button" onClick={exportScrivener} className="text-xs bg-[var(--accent)] text-white px-3 py-1.5 rounded-lg">
+            Scrivener import
           </button>
         </div>
       </div>

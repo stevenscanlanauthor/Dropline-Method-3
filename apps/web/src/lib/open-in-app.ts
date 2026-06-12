@@ -1,5 +1,8 @@
-/** Mac App Store listing — set when the Dropline Mac app is live. */
-export const MAC_APP_STORE_URL: string | undefined = undefined;
+/** Mac App Store listing — set VITE_MAC_APP_STORE_URL on Render when the app is live. */
+export const MAC_APP_STORE_URL: string | undefined = (() => {
+  const url = import.meta.env.VITE_MAC_APP_STORE_URL?.trim();
+  return url || undefined;
+})();
 
 const OPEN_IN_APP_PATH = '/open-in-app';
 

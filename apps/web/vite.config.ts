@@ -13,6 +13,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      '@dropline/core/pdf': path.resolve(__dirname, '../../packages/dropline-core/src/pdfExport.ts'),
       '@dropline/core': path.resolve(__dirname, '../../packages/dropline-core/src/index.ts'),
     },
   },

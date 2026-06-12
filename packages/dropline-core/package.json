@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./pdf": "./src/pdfExport.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -14,5 +15,8 @@
     "@types/node": "^22.15.0",
     "typescript": "~5.9.2",
     "vitest": "^4.1.7"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1"
   }
 }
