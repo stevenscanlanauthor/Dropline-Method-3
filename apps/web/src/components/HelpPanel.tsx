@@ -93,7 +93,7 @@ export default function HelpPanel({ initialTopicId, onClose }: Props) {
         <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-4 shrink-0">
           <div>
             <h2 id="help-panel-title" className="font-semibold text-[var(--ink)]">
-              Dropline Method 3 — Help
+              Dropline Method — Help
             </h2>
             <p className="text-xs text-[var(--muted)] mt-0.5">Guides for drops, workspace, and compile</p>
           </div>

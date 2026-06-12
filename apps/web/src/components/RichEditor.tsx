@@ -116,8 +116,15 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
       contentEditable={!disabled}
       suppressContentEditableWarning
       onInput={syncChange}
+      onPaste={e => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        if (!text) return;
+        document.execCommand('insertText', false, text);
+        syncChange();
+      }}
       data-placeholder={placeholder}
-      className="w-full min-h-[420px] field-input rounded-xl p-6 empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--muted)] leading-relaxed text-base"
+      className="rich-editor w-full min-h-[420px] field-input rounded-xl p-6 empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--muted)] leading-relaxed text-base"
       style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
     />
   );

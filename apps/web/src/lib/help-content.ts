@@ -25,11 +25,11 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: 'welcome',
     section: 'Getting started',
-    title: 'Welcome to Dropline Method 3',
+    title: 'Welcome to the Dropline Method',
     blocks: [
       {
         type: 'p',
-        text: 'Dropline Method 3 guides you through writing one chapter at a time using six structured “drops.” Each drop builds on the last so you move from a clear chapter heading to a finished draft without skipping steps.',
+        text: 'The Dropline Method guides you through writing one chapter at a time using six structured “drops.” Each drop builds on the last so you move from a clear chapter heading to a finished draft without skipping steps.',
       },
       {
         type: 'h3',
@@ -140,7 +140,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         type: 'p',
-        text: 'Use the list menu on the format toolbar (or Format → list styles) to choose bullets, dashes, circles, or numbers. Drop 4 uses a plain textarea — font and size from the toolbar still apply.',
+        text: 'Use the Bullets menu on the format toolbar (or Format → list styles) to choose bullets, dashes, circles, or numbers. Drop 4 uses a plain textarea — font and size from the toolbar still apply.',
       },
       {
         type: 'p',
@@ -313,7 +313,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           'Bold, italic, underline — buttons highlight when the style is active at the cursor.',
           'Font and size dropdowns — beside B/I/U; choices apply to the current editor.',
           'Indent and outdent — adjust list or paragraph indentation.',
-          'List menu — bullet, dash, circle, and numbered lists.',
+          'Bullets menu — bullet, dash, circle, and numbered lists.',
         ],
       },
       {

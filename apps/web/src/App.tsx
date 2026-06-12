@@ -571,6 +571,7 @@ export default function App() {
       <StatusBar
         chapter={selectedChapter}
         chapters={project.chapters}
+        selectedDrop={selectedDrop}
         autosaveLabel={autosaveLabel}
         viewMode={viewMode}
         focusMode={focusMode}

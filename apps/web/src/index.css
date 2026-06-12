@@ -299,6 +299,33 @@ kbd {
   line-height: 1.7;
 }
 
+/* Restore list markers (Tailwind preflight removes them). */
+.rich-editor ul,
+.serif-editor ul {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 1.75rem;
+  margin: 0.35rem 0;
+}
+
+.rich-editor ol,
+.serif-editor ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 1.75rem;
+  margin: 0.35rem 0;
+}
+
+.rich-editor li,
+.serif-editor li {
+  display: list-item;
+}
+
+.rich-editor ul[style*='list-style-type: circle'],
+.serif-editor ul[style*='list-style-type: circle'] {
+  list-style-type: circle;
+}
+
 .drop-pill {
   border-radius: 999px;
   padding: 0.35rem 0.75rem;

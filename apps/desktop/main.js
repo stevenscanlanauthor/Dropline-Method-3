@@ -45,7 +45,7 @@ function createWindow() {
     height: 840,
     minWidth: 960,
     minHeight: 680,
-    title: 'Dropline Method 3',
+    title: 'Dropline Method',
     ...(isMac ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 20, y: 22 } } : {}),
     backgroundColor: '#F6F9FB',
     webPreferences: {

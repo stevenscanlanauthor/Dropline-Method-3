@@ -1,7 +1,7 @@
 {
   "name": "@dropline-method-3/desktop",
   "version": "1.0.0",
-  "description": "Dropline Method 3 — Mac desktop writing app (bundled, offline-first)",
+  "description": "Dropline Method — Mac desktop writing app (bundled, offline-first)",
   "author": "Steven Scanlan <steven@stevenscanlan.com>",
   "homepage": "https://www.droplinemethod.com",
   "private": true,
@@ -23,7 +23,7 @@
   "build": {
     "electronVersion": "39.8.5",
     "appId": "com.dropline.method3",
-    "productName": "Dropline Method 3",
+    "productName": "Dropline Method",
     "copyright": "Copyright © 2026 Dropline",
     "directories": {
       "output": "dist",
@@ -57,7 +57,7 @@
       }
     },
     "dmg": {
-      "title": "Dropline Method 3",
+      "title": "Dropline Method",
       "icon": "assets/icon.icns",
       "contents": [
         { "x": 130, "y": 220 },

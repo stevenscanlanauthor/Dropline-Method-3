@@ -1,6 +1,20 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { RichEditorHandle } from '../components/RichEditor';
 import { applyListInRichEditor, insertListPrefixInPlain, type ListStyle } from './list-format';
+import {
+  captureEditorSelection,
+  deleteSelectionInPlain,
+  deleteSelectionInRich,
+  insertTextInPlain,
+  insertTextInRich,
+  readClipboardText,
+  restoreEditorSelection,
+  runFieldEditCommand,
+  selectAllInEditor,
+  selectedTextFromEditor,
+  writeClipboardText,
+  type SavedEditorSelection,
+} from './editor-clipboard';
 
 export type EditorFont = 'system' | 'georgia' | 'times' | 'palatino' | 'helvetica';
 
@@ -51,6 +65,7 @@ export interface EditorFormatApi {
   applyList: (style: import('./list-format').ListStyle) => void;
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
+  runEditCommand: (cmd: 'copy' | 'cut' | 'paste' | 'delete' | 'selectAll' | 'undo' | 'redo') => void;
 }
 
 interface RegisterApi {
@@ -78,6 +93,7 @@ const defaultApi: EditorFormatApi = {
   applyList: () => {},
   increaseFontSize: () => {},
   decreaseFontSize: () => {},
+  runEditCommand: () => {},
 };
 
 export const EditorFormatContext = createContext<EditorFormatApi>(defaultApi);
@@ -112,7 +128,20 @@ function clampSize(size: number) {
 export function EditorFormatProvider({ children }: { children: ReactNode }) {
   const richRef = useRef<RichEditorHandle | null>(null);
   const plainRef = useRef<HTMLTextAreaElement | null>(null);
+  const savedSelectionRef = useRef<SavedEditorSelection | null>(null);
+  const lastFieldRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const [editorKind, setEditorKind] = useState<'none' | 'rich' | 'plain'>('none');
+
+  useEffect(() => {
+    function onFocusIn(e: FocusEvent) {
+      const target = e.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        lastFieldRef.current = target;
+      }
+    }
+    document.addEventListener('focusin', onFocusIn);
+    return () => document.removeEventListener('focusin', onFocusIn);
+  }, []);
   const [font, setFont] = useState<EditorFont>('georgia');
   const [fontSize, setFontSizeState] = useState(16);
   const [boldActive, setBoldActive] = useState(false);
@@ -140,8 +169,35 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
 
   const registerPlain = useCallback((ref: HTMLTextAreaElement | null) => {
     plainRef.current = ref;
-    if (ref) syncPlainTypography(ref);
+    if (ref) {
+      syncPlainTypography(ref);
+      const save = () => {
+        const captured = captureEditorSelection('plain', ref);
+        if (captured) savedSelectionRef.current = captured;
+      };
+      ref.addEventListener('blur', save);
+      ref.addEventListener('keyup', save);
+      ref.addEventListener('mouseup', save);
+    }
   }, [syncPlainTypography]);
+
+  useEffect(() => {
+    function onSelectionChange() {
+      if (editorKind === 'rich') {
+        const el = richRef.current?.getElement();
+        const captured = captureEditorSelection('rich', el ?? null);
+        if (captured) savedSelectionRef.current = captured;
+      }
+    }
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => document.removeEventListener('selectionchange', onSelectionChange);
+  }, [editorKind]);
+
+  const getEditorRoot = useCallback((): HTMLElement | HTMLTextAreaElement | null => {
+    if (editorKind === 'rich') return richRef.current?.getElement() ?? null;
+    if (editorKind === 'plain') return plainRef.current;
+    return null;
+  }, [editorKind]);
 
   const syncFromSelection = useCallback((
     nextSize: number,
@@ -181,12 +237,103 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     setFont(nextFont);
   }, [editorKind]);
 
+  const runEditCommand = useCallback((cmd: 'copy' | 'cut' | 'paste' | 'delete' | 'selectAll' | 'undo' | 'redo') => {
+    const plainEl = plainRef.current;
+    const active = document.activeElement;
+    const activeIsOtherField =
+      (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) &&
+      active !== plainEl;
+
+    if (activeIsOtherField) {
+      void runFieldEditCommand(active, cmd);
+      return;
+    }
+
+    if (editorKind === 'none') {
+      const field = lastFieldRef.current;
+      if (field) void runFieldEditCommand(field, cmd);
+      return;
+    }
+
+    const root = getEditorRoot();
+    if (!root) return;
+
+    if (cmd === 'selectAll') {
+      selectAllInEditor(editorKind, root);
+      savedSelectionRef.current = captureEditorSelection(editorKind, root);
+      return;
+    }
+
+    if (cmd === 'undo' || cmd === 'redo') {
+      if (editorKind === 'rich') {
+        richRef.current?.exec(cmd);
+      } else if (root instanceof HTMLTextAreaElement) {
+        root.focus();
+        document.execCommand(cmd);
+        root.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return;
+    }
+
+    if (cmd === 'copy') {
+      void (async () => {
+        restoreEditorSelection(savedSelectionRef.current, root);
+        const text = selectedTextFromEditor(savedSelectionRef.current, root);
+        await writeClipboardText(text);
+      })();
+      return;
+    }
+
+    if (cmd === 'cut') {
+      void (async () => {
+        restoreEditorSelection(savedSelectionRef.current, root);
+        const text = selectedTextFromEditor(savedSelectionRef.current, root);
+        if (!text) return;
+        await writeClipboardText(text);
+        if (editorKind === 'rich' && root instanceof HTMLElement) {
+          deleteSelectionInRich(root, savedSelectionRef.current);
+        } else if (root instanceof HTMLTextAreaElement) {
+          deleteSelectionInPlain(root, savedSelectionRef.current);
+        }
+        savedSelectionRef.current = captureEditorSelection(editorKind, root);
+      })();
+      return;
+    }
+
+    if (cmd === 'paste') {
+      void (async () => {
+        const text = await readClipboardText();
+        if (!text) return;
+        restoreEditorSelection(savedSelectionRef.current, root);
+        if (editorKind === 'rich' && root instanceof HTMLElement) {
+          insertTextInRich(root, text);
+        } else if (root instanceof HTMLTextAreaElement) {
+          insertTextInPlain(root, text);
+        }
+        savedSelectionRef.current = captureEditorSelection(editorKind, root);
+      })();
+      return;
+    }
+
+    if (cmd === 'delete') {
+      restoreEditorSelection(savedSelectionRef.current, root);
+      if (editorKind === 'rich' && root instanceof HTMLElement) {
+        deleteSelectionInRich(root, savedSelectionRef.current);
+      } else if (root instanceof HTMLTextAreaElement) {
+        deleteSelectionInPlain(root, savedSelectionRef.current);
+      }
+      savedSelectionRef.current = captureEditorSelection(editorKind, root);
+    }
+  }, [editorKind, getEditorRoot]);
+
   const applyList = useCallback((style: ListStyle) => {
     if (editorKind === 'rich') {
       const el = richRef.current?.getElement();
       if (el) applyListInRichEditor(el, style);
     } else if (plainRef.current) {
-      insertListPrefixInPlain(plainRef.current, style);
+      const el = plainRef.current;
+      insertListPrefixInPlain(el, style);
+      el.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }, [editorKind]);
 
@@ -240,6 +387,7 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
           : fontSize;
       applyFontSizeToSelection(current - 2);
     },
+    runEditCommand,
   }), [
     editorKind,
     font,
@@ -251,6 +399,7 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     applyFontToSelection,
     focusEditor,
     applyList,
+    runEditCommand,
   ]);
 
   const register = useMemo(

@@ -16,6 +16,7 @@ import { dropProgress } from '../lib/stats';
 import { useEditorFormatRegister } from '../lib/editor-format-context';
 import RichEditor, { type RichEditorHandle } from './RichEditor';
 import FormatToolbar from './FormatToolbar';
+import { listContinuationPrefix } from '../lib/list-format';
 
 const DROP_HELP: Record<DropKind | 'drop1', string> = {
   drop1: 'The chapter/scene title becomes the chapter name. Drop 2 cannot start until the heading is in place.',
@@ -81,6 +82,14 @@ export default function EditorPanel({
     let next = value;
     if (selectedDrop === 'drop2') next = value.replace(/\n/g, ' ');
     setLocalContent(next);
+    if (!useRich) {
+      const enforced = enforceDropContent(selectedDrop, next);
+      const html =
+        selectedDrop === 'drop4'
+          ? enforced.split('\n').map(l => `<p>${l}</p>`).join('')
+          : enforced.split('\n').map(l => `<p>${l || '<br>'}</p>`).join('');
+      onContentChange(selectedDrop, html);
+    }
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => persist(next), 600);
   }
@@ -95,9 +104,13 @@ export default function EditorPanel({
     const el = e.currentTarget;
     const start = el.selectionStart;
     const end = el.selectionEnd;
-    const next = localContent.slice(0, start) + '\n• ' + localContent.slice(end);
+    const lineStart = localContent.lastIndexOf('\n', start - 1) + 1;
+    const currentLine = localContent.slice(lineStart, start);
+    const prefix = listContinuationPrefix(currentLine);
+    const next = localContent.slice(0, start) + `\n${prefix}` + localContent.slice(end);
     handleChange(next);
-    setTimeout(() => { el.selectionStart = el.selectionEnd = start + 3; }, 0);
+    const cursor = start + 1 + prefix.length;
+    setTimeout(() => { el.selectionStart = el.selectionEnd = cursor; }, 0);
   }
 
   return (
@@ -171,6 +184,7 @@ export default function EditorPanel({
                 }}
                 value={localContent}
                 onChange={e => handleChange(e.target.value)}
+                onInput={e => handleChange(e.currentTarget.value)}
                 onBlur={() => persist(localContent)}
                 onKeyDown={handleDrop4KeyDown}
                 className="w-full min-h-[420px] resize-y field-input p-6 text-base leading-relaxed"

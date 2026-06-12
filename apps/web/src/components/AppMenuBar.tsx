@@ -72,11 +72,6 @@ export default function AppMenuBar({
   const fmt = useEditorFormat();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  function execEdit(cmd: string) {
-    fmt.focusEditor();
-    document.execCommand(cmd, false);
-  }
-
   useEffect(() => {
     if (!showInEditor || !fmt.canFormat) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -116,14 +111,14 @@ export default function AppMenuBar({
   ];
 
   const editItems: DropdownItem[] = [
-    { id: 'undo', label: 'Undo', shortcut: '⌘Z', onClick: () => execEdit('undo') },
-    { id: 'redo', label: 'Redo', shortcut: '⇧⌘Z', onClick: () => execEdit('redo') },
+    { id: 'undo', label: 'Undo', shortcut: '⌘Z', onClick: () => fmt.runEditCommand('undo') },
+    { id: 'redo', label: 'Redo', shortcut: '⇧⌘Z', onClick: () => fmt.runEditCommand('redo') },
     sep('edit-sep-1'),
-    { id: 'cut', label: 'Cut', shortcut: '⌘X', onClick: () => execEdit('cut') },
-    { id: 'copy', label: 'Copy', shortcut: '⌘C', onClick: () => execEdit('copy') },
-    { id: 'paste', label: 'Paste', shortcut: '⌘V', onClick: () => execEdit('paste') },
-    { id: 'delete', label: 'Delete', onClick: () => execEdit('delete') },
-    { id: 'select-all', label: 'Select All', shortcut: '⌘A', onClick: () => execEdit('selectAll') },
+    { id: 'cut', label: 'Cut', shortcut: '⌘X', onClick: () => fmt.runEditCommand('cut') },
+    { id: 'copy', label: 'Copy', shortcut: '⌘C', onClick: () => fmt.runEditCommand('copy') },
+    { id: 'paste', label: 'Paste', shortcut: '⌘V', onClick: () => fmt.runEditCommand('paste') },
+    { id: 'delete', label: 'Delete', onClick: () => fmt.runEditCommand('delete') },
+    { id: 'select-all', label: 'Select All', shortcut: '⌘A', onClick: () => fmt.runEditCommand('selectAll') },
   ];
 
   const formatItems: DropdownItem[] = [
@@ -286,7 +281,7 @@ export default function AppMenuBar({
   const helpItems: DropdownItem[] = [
     {
       id: 'help-guide',
-      label: 'Dropline Method 3 Help',
+      label: 'Dropline Method Help',
       icon: <CircleHelp size={15} />,
       shortcut: '?',
       onClick: onOpenHelp,

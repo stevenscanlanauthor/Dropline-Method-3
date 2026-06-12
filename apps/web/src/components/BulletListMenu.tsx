@@ -27,7 +27,7 @@ export default function BulletListMenu({ disabled, onSelect }: Props) {
       <button
         type="button"
         className={`format-btn format-btn-wide ${open ? 'format-btn-active' : ''}`}
-        title="List styles"
+        title="Bullet styles"
         disabled={disabled}
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(v => !v)}
@@ -35,7 +35,7 @@ export default function BulletListMenu({ disabled, onSelect }: Props) {
         aria-haspopup="menu"
       >
         <List size={14} />
-        <span>Lists</span>
+        <span>Bullets</span>
         <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
