@@ -21,6 +21,7 @@ import {
   BookOpen,
   Copy,
   ExternalLink,
+  CircleHelp,
 } from 'lucide-react';
 import type { ViewMode } from '../lib/types';
 import { useEditorFormat, FONT_LABELS, type EditorFont } from '../lib/editor-format-context';
@@ -45,6 +46,7 @@ interface Props {
   onExitFocusMode: () => void;
   onCompile: () => void;
   onDuplicateChapter: () => void;
+  onOpenHelp: () => void;
 }
 
 export default function AppMenuBar({
@@ -63,6 +65,7 @@ export default function AppMenuBar({
   onExitFocusMode,
   onCompile,
   onDuplicateChapter,
+  onOpenHelp,
 }: Props) {
   const fmt = useEditorFormat();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -308,6 +311,14 @@ export default function AppMenuBar({
   ];
 
   const helpItems: DropdownItem[] = [
+    {
+      id: 'help-guide',
+      label: 'Dropline Method 3 Help',
+      icon: <CircleHelp size={15} />,
+      shortcut: '?',
+      onClick: onOpenHelp,
+    },
+    sep('help-sep-1'),
     {
       id: 'help-site',
       label: 'Visit DroplineMethod.com',

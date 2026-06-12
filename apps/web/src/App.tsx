@@ -24,6 +24,7 @@ import Inspector from './components/Inspector';
 import PreviewView from './components/PreviewView';
 import CompileModal from './components/CompileModal';
 import CompiledManuscriptModal from './components/CompiledManuscriptModal';
+import HelpPanel from './components/HelpPanel';
 import StatusBar from './components/StatusBar';
 import { EditorFormatProvider } from './lib/editor-format-context';
 import NativeMenuBridge from './components/NativeMenuBridge';
@@ -52,6 +53,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('editor');
   const [inspectorOpen, setInspectorOpen] = useState(project.settings.inspectorVisible !== false);
   const [showCompile, setShowCompile] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [compiled, setCompiled] = useState<{ text: string; chapters: Project['chapters']; includeTitlePage: boolean } | null>(null);
   const [autosaveLabel, setAutosaveLabel] = useState('Not yet autosaved');
   const [dirty, setDirty] = useState(false);
@@ -258,6 +260,24 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [project, selectedChapterId, dirty]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== '?' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      if (
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el?.getAttribute('contenteditable') === 'true'
+      ) {
+        return;
+      }
+      e.preventDefault();
+      setShowHelp(true);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -473,6 +493,7 @@ export default function App() {
         onExitFocusMode={handleExitFocusMode}
         onCompile={() => setShowCompile(true)}
         onDuplicateChapter={handleDuplicateChapter}
+        onOpenHelp={() => setShowHelp(true)}
       />
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -547,6 +568,8 @@ export default function App() {
           onClose={() => setCompiled(null)}
         />
       )}
+
+      {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
 
       {dirty && fileName && (
         <span className="sr-only">Unsaved changes</span>
