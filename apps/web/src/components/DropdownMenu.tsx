@@ -47,8 +47,9 @@ export default function DropdownMenu({
     function onDocClick(e: MouseEvent) {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
+    // Use click (not mousedown) so opening a menu on the same gesture does not instantly dismiss it.
+    document.addEventListener('click', onDocClick, true);
+    return () => document.removeEventListener('click', onDocClick, true);
   }, [open]);
 
   const btnClass =
@@ -73,7 +74,7 @@ export default function DropdownMenu({
       {open && (
         <div
           role="menu"
-          className={`absolute top-full mt-1 z-50 min-w-[220px] rounded-lg border border-[var(--border)] bg-white py-1 shadow-lg ${
+          className={`absolute top-full mt-1 z-[100] min-w-[220px] rounded-lg border border-[var(--border)] bg-white py-1 shadow-lg ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >

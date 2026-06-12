@@ -131,9 +131,17 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     richRef.current = ref;
   }, []);
 
+  const syncPlainTypography = useCallback((el: HTMLTextAreaElement) => {
+    const computed = window.getComputedStyle(el);
+    const px = parseFloat(computed.fontSize);
+    setFontSizeState(clampSize(Number.isFinite(px) ? Math.round(px) : 16));
+    setFont(fontFromFamily(computed.fontFamily));
+  }, []);
+
   const registerPlain = useCallback((ref: HTMLTextAreaElement | null) => {
     plainRef.current = ref;
-  }, []);
+    if (ref) syncPlainTypography(ref);
+  }, [syncPlainTypography]);
 
   const syncFromSelection = useCallback((
     nextSize: number,
@@ -158,15 +166,19 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     const next = clampSize(size);
     if (editorKind === 'rich') {
       richRef.current?.applyFontSize(next);
-      setFontSizeState(next);
+    } else if (plainRef.current) {
+      plainRef.current.style.fontSize = `${next}px`;
     }
+    setFontSizeState(next);
   }, [editorKind]);
 
   const applyFontToSelection = useCallback((nextFont: EditorFont) => {
     if (editorKind === 'rich') {
       richRef.current?.applyFontFamily(FONT_STACKS[nextFont]);
-      setFont(nextFont);
+    } else if (plainRef.current) {
+      plainRef.current.style.fontFamily = FONT_STACKS[nextFont];
     }
+    setFont(nextFont);
   }, [editorKind]);
 
   const applyList = useCallback((style: ListStyle) => {
@@ -215,16 +227,18 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     },
     applyList,
     increaseFontSize: () => {
-      if (editorKind === 'rich') {
-        const current = richRef.current?.getSelectionFontSize() ?? fontSize;
-        applyFontSizeToSelection(current + 2);
-      }
+      const current =
+        editorKind === 'rich'
+          ? (richRef.current?.getSelectionFontSize() ?? fontSize)
+          : fontSize;
+      applyFontSizeToSelection(current + 2);
     },
     decreaseFontSize: () => {
-      if (editorKind === 'rich') {
-        const current = richRef.current?.getSelectionFontSize() ?? fontSize;
-        applyFontSizeToSelection(current - 2);
-      }
+      const current =
+        editorKind === 'rich'
+          ? (richRef.current?.getSelectionFontSize() ?? fontSize)
+          : fontSize;
+      applyFontSizeToSelection(current - 2);
     },
   }), [
     editorKind,

@@ -1,6 +1,9 @@
 import { Bold, Italic, Underline, Indent, Outdent } from 'lucide-react';
-import { useEditorFormat } from '../lib/editor-format-context';
+import { useEditorFormat, FONT_LABELS, type EditorFont } from '../lib/editor-format-context';
 import BulletListMenu from './BulletListMenu';
+
+const FONT_OPTIONS: EditorFont[] = ['system', 'georgia', 'times', 'palatino', 'helvetica'];
+const SIZE_OPTIONS = [12, 14, 16, 18, 20, 22, 24, 28];
 
 export default function FormatToolbar() {
   const fmt = useEditorFormat();
@@ -40,6 +43,35 @@ export default function FormatToolbar() {
         >
           <Underline size={14} strokeWidth={2.5} />
         </button>
+      </div>
+
+      <span className="format-divider" aria-hidden />
+
+      <div className="format-group format-group-selects">
+        <label className="format-select-label">
+          <span className="sr-only">Font</span>
+          <select
+            className="format-select"
+            value={fmt.font}
+            onChange={e => fmt.setFont(e.target.value as EditorFont)}
+          >
+            {FONT_OPTIONS.map(f => (
+              <option key={f} value={f}>{FONT_LABELS[f]}</option>
+            ))}
+          </select>
+        </label>
+        <label className="format-select-label">
+          <span className="sr-only">Font size</span>
+          <select
+            className="format-select format-select-size"
+            value={fmt.fontSize}
+            onChange={e => fmt.setFontSize(Number(e.target.value))}
+          >
+            {SIZE_OPTIONS.map(s => (
+              <option key={s} value={s}>{s} pt</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <span className="format-divider" aria-hidden />

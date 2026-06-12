@@ -317,7 +317,7 @@ export default function AppMenuBar({
   ];
 
   return (
-    <div className="desktop-no-drag desktop-menubar shrink-0 border-b border-[var(--border)] bg-white px-4 py-1.5 flex flex-nowrap items-center gap-1 overflow-x-auto">
+    <div className="desktop-no-drag desktop-menubar shrink-0 border-b border-[var(--border)] bg-white px-4 py-1.5 flex flex-wrap items-center gap-1 overflow-visible">
       <DropdownMenu label="File" items={fileItems} {...menuProps('file')} />
       <DropdownMenu label="Edit" items={editItems} {...menuProps('edit')} />
       {showInEditor && <DropdownMenu label="Format" items={formatItems} {...menuProps('format')} />}
