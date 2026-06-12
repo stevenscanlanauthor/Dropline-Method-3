@@ -157,7 +157,9 @@ export default function EditorPanel({
                 }}
                 value={chapter.drops[selectedDrop] ?? ''}
                 onChange={handleRichChange}
-                onFormatAtCursor={({ fontSize, fontFamily }) => syncFromSelection(fontSize, fontFamily)}
+                onFormatAtCursor={({ fontSize, fontFamily, bold, italic, underline }) =>
+                  syncFromSelection(fontSize, fontFamily, { bold, italic, underline })
+                }
                 placeholder="Start writing…"
               />
             ) : (

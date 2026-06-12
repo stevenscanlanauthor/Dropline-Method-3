@@ -8,11 +8,15 @@ import {
 
 export interface RichEditorHandle {
   focus: () => void;
+  getElement: () => HTMLDivElement | null;
   exec: (command: string, value?: string) => void;
   applyFontSize: (sizePx: number) => void;
   applyFontFamily: (fontFamily: string) => void;
   getSelectionFontSize: () => number;
   getSelectionFontFamily: () => string;
+  queryBold: () => boolean;
+  queryItalic: () => boolean;
+  queryUnderline: () => boolean;
 }
 
 interface Props {
@@ -20,7 +24,13 @@ interface Props {
   onChange: (html: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  onFormatAtCursor?: (format: { fontSize: number; fontFamily: string }) => void;
+  onFormatAtCursor?: (format: {
+    fontSize: number;
+    fontFamily: string;
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+  }) => void;
 }
 
 const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
@@ -33,8 +43,17 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
     onChange(editorRef.current?.innerHTML ?? '');
   }
 
+  function queryState(command: string): boolean {
+    try {
+      return document.queryCommandState(command);
+    } catch {
+      return false;
+    }
+  }
+
   useImperativeHandle(ref, () => ({
     focus: () => editorRef.current?.focus(),
+    getElement: () => editorRef.current,
     exec: (command, val) => {
       editorRef.current?.focus();
       document.execCommand(command, false, val);
@@ -54,6 +73,9 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
     },
     getSelectionFontSize: () => (editorRef.current ? readFontSizePx(editorRef.current) : 16),
     getSelectionFontFamily: () => (editorRef.current ? readFontFamily(editorRef.current) : ''),
+    queryBold: () => queryState('bold'),
+    queryItalic: () => queryState('italic'),
+    queryUnderline: () => queryState('underline'),
   }));
 
   useEffect(() => {
@@ -72,6 +94,9 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
       reportFormat({
         fontSize: readFontSizePx(el),
         fontFamily: readFontFamily(el),
+        bold: queryState('bold'),
+        italic: queryState('italic'),
+        underline: queryState('underline'),
       });
     }
 

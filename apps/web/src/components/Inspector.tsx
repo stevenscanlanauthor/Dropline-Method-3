@@ -1,3 +1,4 @@
+import { AUTOSAVE_INTERVAL_OPTIONS, type AutosaveIntervalSec } from '../lib/autosave';
 import type { Project } from '../lib/types';
 
 interface Props {
@@ -57,6 +58,30 @@ export default function Inspector({ project, width, onUpdate }: Props) {
           onChange={e => onUpdate({ settings: { ...project.settings, editorWidth: Number(e.target.value) || 720 } })}
           className="w-full border border-[var(--border)] rounded-lg px-2 py-1.5 text-sm"
         />
+      </label>
+      <label className="block space-y-1">
+        <span className="text-xs text-[var(--muted)]">Autosave frequency</span>
+        <select
+          value={project.settings.autosaveIntervalSec}
+          onChange={e =>
+            onUpdate({
+              settings: {
+                ...project.settings,
+                autosaveIntervalSec: Number(e.target.value) as AutosaveIntervalSec,
+              },
+            })
+          }
+          className="w-full border border-[var(--border)] rounded-lg px-2 py-1.5 text-sm bg-white"
+        >
+          {AUTOSAVE_INTERVAL_OPTIONS.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-[11px] text-[var(--muted)] leading-snug">
+          Autosave keeps a backup in your browser. Use File → Save to write a .dropline3 file.
+        </p>
       </label>
       <label className="flex items-center gap-2 text-xs">
         <input

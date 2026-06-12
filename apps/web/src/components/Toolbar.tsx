@@ -124,7 +124,7 @@ export default function Toolbar({
       label: 'Bullet list',
       icon: <List size={15} />,
       disabled: !fmt.canFormat,
-      onClick: fmt.applyBulletList,
+      onClick: () => fmt.applyList('bullet'),
     },
     {
       id: 'size-down',

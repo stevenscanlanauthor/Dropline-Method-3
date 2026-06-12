@@ -1,4 +1,5 @@
 import type { DropKind } from '@dropline/core';
+import type { AutosaveIntervalSec } from './autosave';
 
 export interface Chapter {
   id: string;
@@ -18,6 +19,7 @@ export interface ProjectSettings {
   previewMode: boolean;
   chapterTarget: number;
   bookTarget: number;
+  autosaveIntervalSec: AutosaveIntervalSec;
 }
 
 export interface Project {

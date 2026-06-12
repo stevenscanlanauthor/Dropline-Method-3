@@ -12,6 +12,7 @@ import {
   serialiseProject,
 } from './lib/project';
 import ResizeHandle from './components/ResizeHandle';
+import { isImmediateAutosave, isManualAutosave, normaliseAutosaveInterval } from './lib/autosave';
 import { downloadFile, loadAutosave, saveAutosave } from './lib/storage';
 import { buildMarkdown } from './lib/markdown';
 import { getBridge } from './lib/bridge';
@@ -42,7 +43,7 @@ export default function App() {
   const [project, setProject] = useState<Project>(() => {
     const saved = loadAutosave();
     if (!saved) return createDefaultProject();
-    return { ...saved, settings: { ...DEFAULT_SETTINGS, ...saved.settings } };
+    return migrateProject(saved);
   });
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(
     () => project.chapters[0]?.id ?? null,
@@ -56,6 +57,8 @@ export default function App() {
   const [dirty, setDirty] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const openInputRef = useRef<HTMLInputElement>(null);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAutosaveRef = useRef<Project | null>(null);
   const isDesktop = !!getBridge()?.isDesktop;
   const showOpenInApp = shouldOfferOpenInApp(isDesktop);
 
@@ -71,15 +74,53 @@ export default function App() {
     () => project.settings.inspectorWidth ?? DEFAULT_SETTINGS.inspectorWidth,
   );
 
+  const clearAutosaveTimer = useCallback(() => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+  }, []);
+
+  const flushAutosave = useCallback((proj: Project, label?: string) => {
+    pendingAutosaveRef.current = null;
+    clearAutosaveTimer();
+    saveAutosave(proj);
+    setAutosaveLabel(label ?? `Autosaved ${new Date().toLocaleTimeString()}`);
+  }, [clearAutosaveTimer]);
+
+  const scheduleAutosave = useCallback((proj: Project) => {
+    const interval = normaliseAutosaveInterval(proj.settings.autosaveIntervalSec);
+
+    if (isManualAutosave(interval)) {
+      pendingAutosaveRef.current = null;
+      clearAutosaveTimer();
+      setAutosaveLabel('Manual save only');
+      return;
+    }
+
+    if (isImmediateAutosave(interval)) {
+      flushAutosave(proj);
+      return;
+    }
+
+    pendingAutosaveRef.current = proj;
+    clearAutosaveTimer();
+    setAutosaveLabel(`Autosave every ${interval < 60 ? `${interval}s` : `${interval / 60} min`}…`);
+    autosaveTimerRef.current = setTimeout(() => {
+      if (pendingAutosaveRef.current) {
+        flushAutosave(pendingAutosaveRef.current);
+      }
+    }, interval * 1000);
+  }, [clearAutosaveTimer, flushAutosave]);
+
   const updateProject = useCallback((next: Project, markDirty = true) => {
     setProject(next);
-    saveAutosave(next);
-    setAutosaveLabel(`Autosaved ${new Date().toLocaleTimeString()}`);
+    scheduleAutosave(next);
     if (markDirty) {
       setDirty(true);
       getBridge()?.setDirty?.(true);
     }
-  }, []);
+  }, [scheduleAutosave]);
 
   const selectedChapter = project.chapters.find(c => c.id === selectedChapterId) ?? null;
 
@@ -111,8 +152,7 @@ export default function App() {
     savedSnapshot.current = serialiseProject(next);
     setDirty(false);
     setFileName(name);
-    saveAutosave(next);
-    setAutosaveLabel(label);
+    flushAutosave(next, label);
     getBridge()?.setDirty?.(false);
   }
 
@@ -131,7 +171,11 @@ export default function App() {
   }
 
   async function handleSave() {
+    if (pendingAutosaveRef.current) {
+      flushAutosave(pendingAutosaveRef.current);
+    }
     const json = serialiseProject(project);
+    saveAutosave(project);
     const bridge = getBridge();
     if (bridge?.saveToDisk) {
       const res = await bridge.saveToDisk(json);
@@ -217,13 +261,18 @@ export default function App() {
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingAutosaveRef.current) {
+        flushAutosave(pendingAutosaveRef.current);
+      }
       if (!dirty) return;
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [dirty]);
+  }, [dirty, flushAutosave]);
+
+  useEffect(() => () => clearAutosaveTimer(), [clearAutosaveTimer]);
 
   function patchProject(patch: Partial<Project>) {
     updateProject({ ...project, ...patch, settings: patch.settings ?? project.settings });
@@ -334,11 +383,10 @@ export default function App() {
   const handleExitFocusMode = useCallback(() => {
     setProject(prev => {
       const next = { ...prev, settings: { ...prev.settings, focusMode: false } };
-      saveAutosave(next);
-      setAutosaveLabel(`Autosaved ${new Date().toLocaleTimeString()}`);
+      scheduleAutosave(next);
       return next;
     });
-  }, []);
+  }, [scheduleAutosave]);
 
   useEffect(() => {
     if (!project.settings.focusMode) return;
@@ -363,13 +411,13 @@ export default function App() {
       onCompile={() => setShowCompile(true)}
     />
     <div className="h-screen flex flex-col">
-      <header className={`shrink-0 border-b border-[var(--border)] bg-white px-4 py-3 flex items-center gap-4 desktop-drag ${isDesktop ? 'desktop-titlebar' : ''}`}>
-        <div className="flex items-center gap-2 shrink-0">
-          <img src={`${import.meta.env.BASE_URL}logo-dropline-icon.png`} alt="" className="h-8 w-8 object-contain" aria-hidden />
-          <span className="text-lg font-semibold tracking-tight text-[var(--ink)]">Dropline</span>
+      <header className={`shrink-0 border-b border-[var(--border)] bg-white px-4 py-3 flex items-center gap-4 ${isDesktop ? 'desktop-titlebar' : ''}`}>
+        <div className={`flex items-center gap-2 min-w-0 flex-1 ${isDesktop ? 'desktop-drag' : ''}`}>
+          <img src={`${import.meta.env.BASE_URL}logo-dropline-icon.png`} alt="" className="h-8 w-8 object-contain shrink-0" aria-hidden />
+          <span className="text-lg font-semibold tracking-tight text-[var(--ink)] shrink-0">Dropline</span>
+          <p className="hidden sm:block text-xs text-[var(--muted)] italic truncate">One drop at a time. One draft completed.</p>
         </div>
-        <p className="hidden sm:block text-xs text-[var(--muted)] italic">One drop at a time. One draft completed.</p>
-        <div className="flex-1" />
+        <div className="desktop-no-drag flex items-center gap-4 shrink-0">
         {showOpenInApp && <OpenInAppButton />}
         {dirty && (
           <span className="text-xs text-[var(--muted)] shrink-0">Unsaved changes</span>
@@ -388,6 +436,7 @@ export default function App() {
             e.target.value = '';
           }}
         />
+        </div>
       </header>
 
       {focusMode && (

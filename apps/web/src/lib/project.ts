@@ -1,3 +1,4 @@
+import { DEFAULT_AUTOSAVE_INTERVAL, normaliseAutosaveInterval } from './autosave';
 import type { Project, Chapter, ProjectSettings } from './types';
 
 export const DEFAULT_SETTINGS: ProjectSettings = {
@@ -11,7 +12,16 @@ export const DEFAULT_SETTINGS: ProjectSettings = {
   previewMode: false,
   chapterTarget: 2500,
   bookTarget: 80000,
+  autosaveIntervalSec: DEFAULT_AUTOSAVE_INTERVAL,
 };
+
+function mergeSettings(settings?: Partial<ProjectSettings>): ProjectSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...settings,
+    autosaveIntervalSec: normaliseAutosaveInterval(settings?.autosaveIntervalSec),
+  };
+}
 
 export function createChapter(title = 'Untitled Chapter', sortOrder = 0): Chapter {
   return { id: crypto.randomUUID(), title, sortOrder, drops: {} };
@@ -67,7 +77,7 @@ export function migrateProject(raw: unknown): Project {
     const project = data as unknown as Project;
     return {
       ...project,
-      settings: { ...DEFAULT_SETTINGS, ...project.settings },
+      settings: mergeSettings(project.settings),
     };
   }
 

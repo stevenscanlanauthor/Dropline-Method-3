@@ -195,6 +195,18 @@ body {
   color: #1e5f7a;
 }
 
+.format-btn-active,
+.format-btn[aria-pressed='true'] {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.format-btn-active:hover {
+  background: #159a9b;
+  color: white;
+}
+
 .format-btn-wide {
   min-width: auto;
   padding: 0 0.65rem;

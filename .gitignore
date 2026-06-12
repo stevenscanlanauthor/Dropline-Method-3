@@ -12,3 +12,4 @@ apps/web/dist/
 apps/desktop/dist/
 Dropline-Keys
 Dropline-Keys.pub
+.gitlab-token.local

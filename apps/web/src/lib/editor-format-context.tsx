@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { RichEditorHandle } from '../components/RichEditor';
+import { applyListInRichEditor, insertListPrefixInPlain, type ListStyle } from './list-format';
 
 export type EditorFont = 'system' | 'georgia' | 'times' | 'palatino' | 'helvetica';
 
@@ -36,14 +37,18 @@ export interface EditorFormatApi {
   canFormat: boolean;
   font: EditorFont;
   fontSize: number;
+  boldActive: boolean;
+  italicActive: boolean;
+  underlineActive: boolean;
   setFont: (font: EditorFont) => void;
   setFontSize: (size: number) => void;
+  focusEditor: () => void;
   applyBold: () => void;
   applyItalic: () => void;
   applyUnderline: () => void;
   applyIndent: () => void;
   applyOutdent: () => void;
-  applyBulletList: () => void;
+  applyList: (style: import('./list-format').ListStyle) => void;
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
 }
@@ -52,21 +57,25 @@ interface RegisterApi {
   setEditorKind: (kind: 'none' | 'rich' | 'plain') => void;
   registerRich: (ref: RichEditorHandle | null) => void;
   registerPlain: (ref: HTMLTextAreaElement | null) => void;
-  syncFromSelection: (fontSize: number, fontFamily: string) => void;
+  syncFromSelection: (fontSize: number, fontFamily: string, inline?: { bold: boolean; italic: boolean; underline: boolean }) => void;
 }
 
 const defaultApi: EditorFormatApi = {
   canFormat: false,
   font: 'georgia',
   fontSize: 16,
+  boldActive: false,
+  italicActive: false,
+  underlineActive: false,
   setFont: () => {},
   setFontSize: () => {},
+  focusEditor: () => {},
   applyBold: () => {},
   applyItalic: () => {},
   applyUnderline: () => {},
   applyIndent: () => {},
   applyOutdent: () => {},
-  applyBulletList: () => {},
+  applyList: () => {},
   increaseFontSize: () => {},
   decreaseFontSize: () => {},
 };
@@ -106,6 +115,17 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
   const [editorKind, setEditorKind] = useState<'none' | 'rich' | 'plain'>('none');
   const [font, setFont] = useState<EditorFont>('georgia');
   const [fontSize, setFontSizeState] = useState(16);
+  const [boldActive, setBoldActive] = useState(false);
+  const [italicActive, setItalicActive] = useState(false);
+  const [underlineActive, setUnderlineActive] = useState(false);
+
+  useEffect(() => {
+    if (editorKind === 'none') {
+      setBoldActive(false);
+      setItalicActive(false);
+      setUnderlineActive(false);
+    }
+  }, [editorKind]);
 
   const registerRich = useCallback((ref: RichEditorHandle | null) => {
     richRef.current = ref;
@@ -115,10 +135,24 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     plainRef.current = ref;
   }, []);
 
-  const syncFromSelection = useCallback((nextSize: number, fontFamily: string) => {
+  const syncFromSelection = useCallback((
+    nextSize: number,
+    fontFamily: string,
+    inline?: { bold: boolean; italic: boolean; underline: boolean },
+  ) => {
     setFontSizeState(clampSize(nextSize));
     setFont(fontFromFamily(fontFamily));
+    if (inline) {
+      setBoldActive(inline.bold);
+      setItalicActive(inline.italic);
+      setUnderlineActive(inline.underline);
+    }
   }, []);
+
+  const focusEditor = useCallback(() => {
+    if (editorKind === 'rich') richRef.current?.focus();
+    else if (editorKind === 'plain') plainRef.current?.focus();
+  }, [editorKind]);
 
   const applyFontSizeToSelection = useCallback((size: number) => {
     const next = clampSize(size);
@@ -135,20 +169,42 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     }
   }, [editorKind]);
 
+  const applyList = useCallback((style: ListStyle) => {
+    if (editorKind === 'rich') {
+      const el = richRef.current?.getElement();
+      if (el) applyListInRichEditor(el, style);
+    } else if (plainRef.current) {
+      insertListPrefixInPlain(plainRef.current, style);
+    }
+  }, [editorKind]);
+
   const api = useMemo((): EditorFormatApi => ({
     canFormat: editorKind !== 'none',
     font,
     fontSize,
+    boldActive,
+    italicActive,
+    underlineActive,
     setFont: applyFontToSelection,
     setFontSize: applyFontSizeToSelection,
+    focusEditor,
     applyBold: () => {
-      if (editorKind === 'rich') richRef.current?.exec('bold');
+      if (editorKind === 'rich') {
+        richRef.current?.exec('bold');
+        setBoldActive(richRef.current?.queryBold() ?? false);
+      }
     },
     applyItalic: () => {
-      if (editorKind === 'rich') richRef.current?.exec('italic');
+      if (editorKind === 'rich') {
+        richRef.current?.exec('italic');
+        setItalicActive(richRef.current?.queryItalic() ?? false);
+      }
     },
     applyUnderline: () => {
-      if (editorKind === 'rich') richRef.current?.exec('underline');
+      if (editorKind === 'rich') {
+        richRef.current?.exec('underline');
+        setUnderlineActive(richRef.current?.queryUnderline() ?? false);
+      }
     },
     applyIndent: () => {
       if (editorKind === 'rich') richRef.current?.exec('indent');
@@ -157,10 +213,7 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
     applyOutdent: () => {
       if (editorKind === 'rich') richRef.current?.exec('outdent');
     },
-    applyBulletList: () => {
-      if (editorKind === 'rich') richRef.current?.exec('insertUnorderedList');
-      else if (plainRef.current) insertAtCursor(plainRef.current, '• ');
-    },
+    applyList,
     increaseFontSize: () => {
       if (editorKind === 'rich') {
         const current = richRef.current?.getSelectionFontSize() ?? fontSize;
@@ -173,7 +226,18 @@ export function EditorFormatProvider({ children }: { children: ReactNode }) {
         applyFontSizeToSelection(current - 2);
       }
     },
-  }), [editorKind, font, fontSize, applyFontSizeToSelection, applyFontToSelection]);
+  }), [
+    editorKind,
+    font,
+    fontSize,
+    boldActive,
+    italicActive,
+    underlineActive,
+    applyFontSizeToSelection,
+    applyFontToSelection,
+    focusEditor,
+    applyList,
+  ]);
 
   const register = useMemo(
     () => ({ setEditorKind, registerRich, registerPlain, syncFromSelection }),

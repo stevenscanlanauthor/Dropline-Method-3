@@ -24,13 +24,10 @@ import {
 } from 'lucide-react';
 import type { ViewMode } from '../lib/types';
 import { useEditorFormat, FONT_LABELS, type EditorFont } from '../lib/editor-format-context';
+import { LIST_STYLE_LABELS, type ListStyle } from '../lib/list-format';
 import DropdownMenu, { type DropdownItem } from './DropdownMenu';
 
 const sep = (id: string): DropdownItem => ({ id, type: 'separator' });
-
-function execEdit(cmd: string) {
-  document.execCommand(cmd, false);
-}
 
 interface Props {
   viewMode: ViewMode;
@@ -69,6 +66,11 @@ export default function AppMenuBar({
 }: Props) {
   const fmt = useEditorFormat();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+
+  function execEdit(cmd: string) {
+    fmt.focusEditor();
+    document.execCommand(cmd, false);
+  }
 
   useEffect(() => {
     if (!showInEditor || !fmt.canFormat) return;
@@ -125,6 +127,7 @@ export default function AppMenuBar({
       label: 'Bold',
       icon: <Bold size={15} />,
       shortcut: '⌘B',
+      active: fmt.boldActive,
       disabled: !fmt.canFormat,
       onClick: fmt.applyBold,
     },
@@ -133,6 +136,7 @@ export default function AppMenuBar({
       label: 'Italic',
       icon: <Italic size={15} />,
       shortcut: '⌘I',
+      active: fmt.italicActive,
       disabled: !fmt.canFormat,
       onClick: fmt.applyItalic,
     },
@@ -141,6 +145,7 @@ export default function AppMenuBar({
       label: 'Underline',
       icon: <Underline size={15} />,
       shortcut: '⌘U',
+      active: fmt.underlineActive,
       disabled: !fmt.canFormat,
       onClick: fmt.applyUnderline,
     },
@@ -161,13 +166,13 @@ export default function AppMenuBar({
       disabled: !fmt.canFormat,
       onClick: fmt.applyOutdent,
     },
-    {
-      id: 'bullets',
-      label: 'Bullet list',
+    ...(['bullet', 'dash', 'circle', 'number'] as ListStyle[]).map(style => ({
+      id: `list-${style}`,
+      label: LIST_STYLE_LABELS[style],
       icon: <List size={15} />,
       disabled: !fmt.canFormat,
-      onClick: fmt.applyBulletList,
-    },
+      onClick: () => fmt.applyList(style),
+    })),
     sep('fmt-sep-2'),
     {
       id: 'size-down',
@@ -312,7 +317,7 @@ export default function AppMenuBar({
   ];
 
   return (
-    <div className="desktop-drag desktop-menubar shrink-0 border-b border-[var(--border)] bg-white px-4 py-1.5 flex flex-nowrap items-center gap-1 overflow-x-auto">
+    <div className="desktop-no-drag desktop-menubar shrink-0 border-b border-[var(--border)] bg-white px-4 py-1.5 flex flex-nowrap items-center gap-1 overflow-x-auto">
       <DropdownMenu label="File" items={fileItems} {...menuProps('file')} />
       <DropdownMenu label="Edit" items={editItems} {...menuProps('edit')} />
       {showInEditor && <DropdownMenu label="Format" items={formatItems} {...menuProps('format')} />}
