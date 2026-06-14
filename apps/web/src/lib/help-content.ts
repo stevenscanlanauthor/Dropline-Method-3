@@ -338,7 +338,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         type: 'ul',
         items: [
-          'File → New Project (⌘N) — starts a blank project; confirms if you have unsaved changes.',
+          'File → New Project (⌘N) — starts a blank book; your current book is saved automatically first.',
           'File → Open Project… (⌘O) — loads a .dropline3 JSON file.',
           'File → Open Sample Project — loads a demo manuscript.',
         ],

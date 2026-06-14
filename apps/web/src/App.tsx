@@ -67,6 +67,8 @@ export default function App() {
   const openInputRef = useRef<HTMLInputElement>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAutosaveRef = useRef<Project | null>(null);
+  const projectRef = useRef(project);
+  const activeBookIdRef = useRef(activeBookId);
   const isDesktop = !!getBridge()?.isDesktop;
   const showOpenInApp = shouldOfferOpenInApp(isDesktop);
 
@@ -74,6 +76,15 @@ export default function App() {
     if (isDesktop) document.documentElement.classList.add('dropline-desktop');
     return () => document.documentElement.classList.remove('dropline-desktop');
   }, [isDesktop]);
+
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
+
+  useEffect(() => {
+    activeBookIdRef.current = activeBookId;
+  }, [activeBookId]);
+
   const savedSnapshot = useRef(serialiseProject(project));
   const [sidebarWidth, setSidebarWidth] = useState(
     () => project.settings.sidebarWidth ?? DEFAULT_SETTINGS.sidebarWidth,
@@ -148,10 +159,18 @@ export default function App() {
     );
   }, [project, sidebarWidth, inspectorWidth, updateProject]);
 
-  function confirmDiscard(): boolean {
-    if (!dirty) return true;
-    return window.confirm('You have unsaved changes. Discard them?');
-  }
+  const saveActiveBookNow = useCallback((label?: string) => {
+    clearAutosaveTimer();
+    const current = pendingAutosaveRef.current ?? projectRef.current;
+    pendingAutosaveRef.current = null;
+    const bookId = activeBookIdRef.current;
+    if (bookId) upsertBook(bookId, current);
+    saveAutosave(current);
+    setAutosaveLabel(label ?? `Saved ${new Date().toLocaleTimeString()}`);
+    savedSnapshot.current = serialiseProject(current);
+    setDirty(false);
+    getBridge()?.setDirty?.(false);
+  }, [clearAutosaveTimer]);
 
   function loadProject(next: Project, label: string, name: string | null = null) {
     setProject(next);
@@ -171,26 +190,16 @@ export default function App() {
     loadProject(next, 'Opened book', name);
   }
 
-  function persistActiveBook() {
-    if (!activeBookId) return;
-    const current = pendingAutosaveRef.current ?? project;
-    upsertBook(activeBookId, current);
-  }
-
   function goToLibrary() {
-    if (pendingAutosaveRef.current) {
-      flushAutosave(pendingAutosaveRef.current);
-    } else {
-      persistActiveBook();
-    }
+    saveActiveBookNow('Book saved');
+    setActiveBookId(null);
     setAppScreen('library');
     setLibraryRefresh(k => k + 1);
   }
 
   function handleOpenBookFromLibrary(bookId: string) {
     if (activeBookId === bookId && appScreen === 'editor') return;
-    if (!confirmDiscard()) return;
-    persistActiveBook();
+    if (appScreen === 'editor' || dirty) saveActiveBookNow();
     const next = loadBook(bookId);
     if (!next) {
       window.alert('That book could not be loaded.');
@@ -201,8 +210,7 @@ export default function App() {
   }
 
   function handleCreateBook() {
-    if (!confirmDiscard()) return;
-    persistActiveBook();
+    saveActiveBookNow();
     const bookId = createBook(createDefaultProject());
     const next = loadBook(bookId);
     if (!next) return;
@@ -228,10 +236,9 @@ export default function App() {
   }
 
   function handleOpenFile(data: string, path?: string) {
-    if (!confirmDiscard()) return;
     try {
       const imported = migrateProject(JSON.parse(data));
-      persistActiveBook();
+      saveActiveBookNow();
       const bookId = createBook(imported);
       const next = loadBook(bookId);
       if (!next) throw new Error('load failed');
@@ -295,8 +302,7 @@ export default function App() {
     bridge?.onExportMarkdown?.(() => { void handleExportMarkdown(); });
     bridge?.onFileOpened?.(({ data, filePath }) => handleOpenFile(data, filePath));
     bridge?.onOpenSample?.(() => {
-      if (!confirmDiscard()) return;
-      persistActiveBook();
+      saveActiveBookNow();
       const bookId = createBook(createSampleProject());
       const next = loadBook(bookId);
       if (next) openBookEditor(bookId, next, null);
@@ -358,17 +364,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (pendingAutosaveRef.current) {
-        flushAutosave(pendingAutosaveRef.current);
-      }
-      if (!dirty) return;
-      e.preventDefault();
-      e.returnValue = '';
+    const onBeforeUnload = () => {
+      saveActiveBookNow();
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [dirty, flushAutosave]);
+  }, [saveActiveBookNow]);
 
   useEffect(() => () => clearAutosaveTimer(), [clearAutosaveTimer]);
 
@@ -557,8 +558,7 @@ export default function App() {
                 onSave={() => void handleSave()}
                 onExportMarkdown={() => void handleExportMarkdown()}
                 onOpenSample={() => {
-                  if (!confirmDiscard()) return;
-                  persistActiveBook();
+                  saveActiveBookNow();
                   const bookId = createBook(createSampleProject());
                   const next = loadBook(bookId);
                   if (next) openBookEditor(bookId, next, null);
@@ -615,8 +615,7 @@ export default function App() {
           onCreateBook={handleCreateBook}
           onImportFile={() => openInputRef.current?.click()}
           onOpenSample={() => {
-            if (!confirmDiscard()) return;
-            persistActiveBook();
+            saveActiveBookNow();
             const bookId = createBook(createSampleProject());
             const next = loadBook(bookId);
             if (next) openBookEditor(bookId, next, null);
