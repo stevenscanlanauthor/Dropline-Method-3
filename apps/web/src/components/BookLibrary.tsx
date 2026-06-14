@@ -1,6 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { BookOpen, FileUp, Plus, Trash2 } from 'lucide-react';
-import { listBooks, type BookMeta } from '../lib/library';
+import {
+  listBooks,
+  loadLibrarySort,
+  saveLibrarySort,
+  sortBooks,
+  type BookLibrarySort,
+  type BookMeta,
+} from '../lib/library';
 
 interface Props {
   refreshKey: number;
@@ -31,7 +38,16 @@ export default function BookLibrary({
   onOpenSample,
   onDeleteBook,
 }: Props) {
-  const books = useMemo(() => listBooks(), [refreshKey]);
+  const [sort, setSort] = useState<BookLibrarySort>(() => loadLibrarySort());
+  const books = useMemo(
+    () => sortBooks(listBooks(), sort),
+    [refreshKey, sort],
+  );
+
+  const handleSortChange = (next: BookLibrarySort) => {
+    setSort(next);
+    saveLibrarySort(next);
+  };
 
   return (
     <div className="flex-1 overflow-auto bg-[var(--surface-muted)]">
@@ -41,9 +57,29 @@ export default function BookLibrary({
             <h1 className="text-2xl font-semibold text-[var(--ink)]">Your books</h1>
             <p className="text-sm text-[var(--muted)] mt-1">
               Choose a book to edit, or start a new one.
+              {books.length > 0 && (
+                <span className="block sm:inline sm:ml-2">
+                  {books.length} book{books.length !== 1 ? 's' : ''}
+                </span>
+              )}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {books.length > 0 && (
+              <label className="flex items-center gap-2 text-sm text-[var(--muted)] mr-1">
+                <span>Sort</span>
+                <select
+                  value={sort}
+                  onChange={e => handleSortChange(e.target.value as BookLibrarySort)}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:ring-2 focus:ring-[var(--accent-muted)] min-w-[7rem]"
+                  aria-label="Sort books"
+                >
+                  <option value="recent">Recent</option>
+                  <option value="a-z">A–Z</option>
+                  <option value="z-a">Z–A</option>
+                </select>
+              </label>
+            )}
             <button type="button" onClick={onCreateBook} className="panel-header-action inline-flex items-center gap-2">
               <Plus size={16} />
               New book

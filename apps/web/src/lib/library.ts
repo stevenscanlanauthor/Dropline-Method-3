@@ -13,6 +13,10 @@ export interface BookMeta {
   updatedAt: string;
 }
 
+export type BookLibrarySort = 'recent' | 'a-z' | 'z-a';
+
+const SORT_PREF_KEY = 'dropline-library-sort-v1';
+
 interface LibraryIndex {
   books: BookMeta[];
 }
@@ -62,9 +66,40 @@ export function migrateLegacyAutosaveToLibrary(): void {
   localStorage.setItem(LEGACY_MIGRATED_KEY, '1');
 }
 
+export function loadLibrarySort(): BookLibrarySort {
+  try {
+    const raw = localStorage.getItem(SORT_PREF_KEY);
+    if (raw === 'recent' || raw === 'a-z' || raw === 'z-a') return raw;
+  } catch {
+    /* ignore */
+  }
+  return 'recent';
+}
+
+export function saveLibrarySort(sort: BookLibrarySort): void {
+  localStorage.setItem(SORT_PREF_KEY, sort);
+}
+
+export function sortBooks(books: BookMeta[], sort: BookLibrarySort): BookMeta[] {
+  const copy = [...books];
+  if (sort === 'a-z') {
+    return copy.sort((a, b) => {
+      const byTitle = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+      return byTitle !== 0 ? byTitle : b.updatedAt.localeCompare(a.updatedAt);
+    });
+  }
+  if (sort === 'z-a') {
+    return copy.sort((a, b) => {
+      const byTitle = b.title.localeCompare(a.title, undefined, { sensitivity: 'base' });
+      return byTitle !== 0 ? byTitle : b.updatedAt.localeCompare(a.updatedAt);
+    });
+  }
+  return copy.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
 export function listBooks(): BookMeta[] {
   migrateLegacyAutosaveToLibrary();
-  return loadIndex().books.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return loadIndex().books;
 }
 
 export function loadBook(id: string): Project | null {
