@@ -80,8 +80,11 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
 
   useEffect(() => {
     const el = editorRef.current;
-    if (!el || document.activeElement === el) return;
-    el.innerHTML = value || '';
+    if (!el) return;
+    const next = value || '';
+    if (el.innerHTML !== next) {
+      el.innerHTML = next;
+    }
   }, [value]);
 
   useEffect(() => {

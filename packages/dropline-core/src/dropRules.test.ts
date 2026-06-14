@@ -6,7 +6,9 @@ import {
   enforceDrop4BulletsPlain,
   hasContent,
   previousDrop,
+  seedSourceForDrop,
   withDrop6SeededFromDrop5,
+  withDropSeededIfEmpty,
   wordCount,
 } from './dropRules.js';
 
@@ -66,5 +68,46 @@ describe('DropRules', () => {
     };
     const seeded = withDrop6SeededFromDrop5(chapter);
     expect(seeded.drop6).toBe('<p>Final version.</p>');
+  });
+
+  it('seedSourceForDrop skips drop4 and maps drop5 to drop3', () => {
+    expect(seedSourceForDrop('drop2')).toBe('title');
+    expect(seedSourceForDrop('drop3')).toBe('drop2');
+    expect(seedSourceForDrop('drop4')).toBeNull();
+    expect(seedSourceForDrop('drop5')).toBe('drop3');
+    expect(seedSourceForDrop('drop6')).toBe('drop5');
+  });
+
+  it('seeds drop2 from drop1 title when drop2 is empty', () => {
+    const chapter = { title: 'The frozen bridge', drops: {} };
+    const seeded = withDropSeededIfEmpty(chapter, 'drop2');
+    expect(seeded.drop2).toBe('<p>The frozen bridge</p>');
+  });
+
+  it('seeds drop3 from drop2 when drop3 is empty', () => {
+    const chapter = {
+      title: 'Ch',
+      drops: { drop2: '<p>One sentence.</p>' },
+    };
+    const seeded = withDropSeededIfEmpty(chapter, 'drop3');
+    expect(seeded.drop3).toBe('<p>One sentence.</p>');
+  });
+
+  it('does not seed drop4 from drop3', () => {
+    const chapter = {
+      title: 'Ch',
+      drops: { drop3: '<p>Plan paragraph.</p>' },
+    };
+    const seeded = withDropSeededIfEmpty(chapter, 'drop4');
+    expect(seeded.drop4).toBeUndefined();
+  });
+
+  it('seeds drop5 from drop3 when drop5 is empty', () => {
+    const chapter = {
+      title: 'Ch',
+      drops: { drop3: '<p>Plan paragraph.</p>' },
+    };
+    const seeded = withDropSeededIfEmpty(chapter, 'drop5');
+    expect(seeded.drop5).toBe('<p>Plan paragraph.</p>');
   });
 });

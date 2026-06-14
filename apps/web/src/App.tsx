@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { compiledText, withDrop6SeededFromDrop5, type DropKind } from '@dropline/core';
+import { compiledText, withDropSeededIfEmpty, type DropKind } from '@dropline/core';
 import type { Project, ViewMode } from './lib/types';
 import {
   createChapter,
@@ -389,32 +389,39 @@ export default function App() {
       ...project,
       chapters: project.chapters.map(c => {
         if (c.id !== chapterId) return c;
-        const drops = withDrop6SeededFromDrop5({
-          title: c.title,
-          drops: { ...c.drops, [kind]: contentHtml },
-        });
+        let drops = { ...c.drops, [kind]: contentHtml };
+        if (kind === 'drop5') {
+          drops = withDropSeededIfEmpty({ title: c.title, drops }, 'drop6');
+        }
         return { ...c, drops };
       }),
     });
   }
 
-  function handleDropChange(drop: DropKind) {
-    if (drop === 'drop6' && selectedChapterId) {
-      const ch = project.chapters.find(c => c.id === selectedChapterId);
-      if (ch) {
-        const drops = withDrop6SeededFromDrop5({ title: ch.title, drops: ch.drops });
-        if (drops.drop6 && drops.drop6 !== ch.drops.drop6) {
-          updateProject({
-            ...project,
-            chapters: project.chapters.map(c =>
-              c.id === selectedChapterId ? { ...c, drops } : c,
-            ),
-          });
-        }
-      }
+  function trySeedDrop(chapterId: string, drop: DropKind) {
+    const ch = project.chapters.find(c => c.id === chapterId);
+    if (!ch) return;
+    const drops = withDropSeededIfEmpty({ title: ch.title, drops: ch.drops }, drop);
+    const seeded = drops[drop];
+    if (seeded && seeded !== ch.drops[drop]) {
+      updateProject({
+        ...project,
+        chapters: project.chapters.map(c =>
+          c.id === chapterId ? { ...c, drops } : c,
+        ),
+      });
     }
+  }
+
+  function handleDropChange(drop: DropKind) {
+    if (selectedChapterId) trySeedDrop(selectedChapterId, drop);
     setSelectedDrop(drop);
   }
+
+  useEffect(() => {
+    if (appScreen !== 'editor' || !selectedChapterId) return;
+    trySeedDrop(selectedChapterId, selectedDrop);
+  }, [selectedChapterId, selectedDrop, appScreen]);
 
   function handleDuplicateChapter() {
     if (!selectedChapterId) return;

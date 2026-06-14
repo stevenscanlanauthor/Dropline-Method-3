@@ -20,11 +20,11 @@ import { listContinuationPrefix } from '../lib/list-format';
 
 const DROP_HELP: Record<DropKind | 'drop1', string> = {
   drop1: 'The chapter/scene title becomes the chapter name. Drop 2 cannot start until the heading is in place.',
-  drop2: 'One sentence that states purpose and movement for this chapter.',
-  drop3: 'One paragraph plan — want, pressure, change, and consequence.',
+  drop2: 'One sentence that states purpose and movement for this chapter. Starts with your Drop 1 heading when empty.',
+  drop3: 'One paragraph plan — want, pressure, change, and consequence. Starts with your Drop 2 sentence when empty.',
   drop4: 'Rest period notes. Bullets only. Each new line starts a new note.',
-  drop5: 'Full chapter draft — up to 500 words (warning only).',
-  drop6: 'Final draft for compiling. Starts from your Drop 5 text — edit and expand here. Only Drop 6 is included in the compiled manuscript.',
+  drop5: 'Full chapter draft — up to 500 words (warning only). Starts with your Drop 3 paragraph when empty.',
+  drop6: 'Final draft for compiling. Starts from your Drop 5 text when empty — edit and expand here. Only Drop 6 is included in the compiled manuscript.',
 };
 
 interface Props {

@@ -105,15 +105,51 @@ export function enforceDrop4BulletsPlain(text: string): string {
   return out.join('\n');
 }
 
+/** Source content used to pre-fill a drop when the author first opens it. Drop 4 is never seeded. */
+export function seedSourceForDrop(drop: DropKind): 'title' | DropKind | null {
+  switch (drop) {
+    case 'drop2':
+      return 'title';
+    case 'drop3':
+      return 'drop2';
+    case 'drop4':
+      return null;
+    case 'drop5':
+      return 'drop3';
+    case 'drop6':
+      return 'drop5';
+  }
+}
+
+/** When a drop is empty, seed it from the prior drop in the workflow so the author has a starting point. */
+export function withDropSeededIfEmpty(
+  chapter: ChapterDrops,
+  targetDrop: DropKind,
+): Partial<Record<DropKind, string>> {
+  const drops = { ...chapter.drops };
+  if (hasContent(targetDrop, chapter)) return drops;
+
+  const source = seedSourceForDrop(targetDrop);
+  if (!source) return drops;
+
+  if (source === 'title') {
+    if (!dropOneComplete(chapter.title)) return drops;
+    drops.drop2 = plainToHtml(chapter.title.trim());
+    return drops;
+  }
+
+  if (!hasContent(source, chapter)) return drops;
+  const sourceContent = chapter.drops[source];
+  if (!sourceContent?.trim()) return drops;
+  drops[targetDrop] = sourceContent;
+  return drops;
+}
+
 /** When Drop 6 is empty, seed it from Drop 5 so the author has a starting draft. */
 export function withDrop6SeededFromDrop5(
   chapter: ChapterDrops,
 ): Partial<Record<DropKind, string>> {
-  const drops = { ...chapter.drops };
-  if (!hasContent('drop5', chapter) || hasContent('drop6', chapter)) return drops;
-  const drop5 = chapter.drops.drop5;
-  if (drop5?.trim()) drops.drop6 = drop5;
-  return drops;
+  return withDropSeededIfEmpty(chapter, 'drop6');
 }
 
 export function dropOneComplete(title: string): boolean {
