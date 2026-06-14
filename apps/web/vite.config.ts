@@ -17,7 +17,12 @@ export default defineConfig({
       '@dropline/core': path.resolve(__dirname, '../../packages/dropline-core/src/index.ts'),
     },
   },
-  server: { port: 5173 },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': { target: 'http://localhost:3001', changeOrigin: true },
+    },
+  },
   optimizeDeps: {
     // Monorepo TS sources via alias — avoid heavy pre-bundle on constrained CI hosts.
     exclude: ['@dropline/core'],

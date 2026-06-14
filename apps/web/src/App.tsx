@@ -14,7 +14,7 @@ import {
 import ResizeHandle from './components/ResizeHandle';
 import { isImmediateAutosave, isManualAutosave, normaliseAutosaveInterval } from './lib/autosave';
 import { downloadFile, saveAutosave } from './lib/storage';
-import { createBook, deleteBook, loadBook, migrateLegacyAutosaveToLibrary, upsertBook } from './lib/library';
+import { createBook, deleteBook, loadBook, upsertBook } from './lib/library';
 import BookLibrary from './components/BookLibrary';
 import { buildMarkdown } from './lib/markdown';
 import { getBridge } from './lib/bridge';
@@ -33,6 +33,10 @@ import NativeMenuBridge from './components/NativeMenuBridge';
 import OpenInAppButton from './components/OpenInAppButton';
 import OpenInAppLanding from './components/OpenInAppLanding';
 import { shouldOfferOpenInApp } from './lib/open-in-app';
+import { useAuth } from './lib/auth-context';
+import SignInPage from './pages/SignInPage';
+import AdminPage from './pages/AdminPage';
+import { setLibraryUserId, syncLibraryFromCloud, migrateLegacyAutosaveToLibrary } from './lib/library';
 
 const SIDEBAR_MIN = 160;
 const SIDEBAR_MAX = 480;
@@ -46,7 +50,8 @@ function clamp(n: number, min: number, max: number) {
 type AppScreen = 'library' | 'editor';
 
 export default function App() {
-  migrateLegacyAutosaveToLibrary();
+  const { user, isLoaded, signOut } = useAuth();
+  const pathname = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/';
 
   const [appScreen, setAppScreen] = useState<AppScreen>('library');
   const [activeBookId, setActiveBookId] = useState<string | null>(null);
@@ -517,12 +522,43 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [project.settings.focusMode, showCompile, compiled, handleExitFocusMode]);
 
-  const openInAppRoute =
-    typeof window !== 'undefined' &&
-    window.location.pathname.replace(/\/+$/, '') === '/open-in-app';
+  useEffect(() => {
+    if (!user?.userId) {
+      setLibraryUserId(null);
+      return;
+    }
+    setLibraryUserId(user.userId);
+    migrateLegacyAutosaveToLibrary();
+    void syncLibraryFromCloud().then(() => setLibraryRefresh(k => k + 1));
+  }, [user?.userId]);
 
+  if (pathname === '/admin') {
+    if (!isLoaded) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-[var(--muted)]">
+          Loading…
+        </div>
+      );
+    }
+    if (!user) return <SignInPage />;
+    return <AdminPage />;
+  }
+
+  const openInAppRoute = pathname === '/open-in-app';
   if (openInAppRoute) {
     return <OpenInAppLanding />;
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-[var(--muted)]">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <SignInPage />;
   }
 
   return (
@@ -585,6 +621,22 @@ export default function App() {
           )}
         </div>
         <div className="app-chrome-actions desktop-no-drag">
+          <span className="text-xs text-[var(--muted)] hidden sm:inline truncate max-w-[10rem]">{user.email}</span>
+          {user.isAdmin && (
+            <a
+              href="/admin"
+              className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
+            >
+              Admin
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
+          >
+            Sign out
+          </button>
           {appScreen === 'library' && (
             <button
               type="button"

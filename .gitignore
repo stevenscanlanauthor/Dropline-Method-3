@@ -3,6 +3,7 @@ dist/
 build/
 .env
 .env.*
+!deploy/.env.example
 *.pem
 *.p12
 *.mobileprovision
