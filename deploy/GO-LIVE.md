@@ -58,7 +58,7 @@ If you see *“Blueprint file render.yaml not found”*, the code was not pushed
 5. At eNom, update DNS — see **[DNS-ENOM.md](./DNS-ENOM.md)** for host records
 6. Wait for **Verified** status and TLS (usually minutes)
 
-**Current check:** `www.droplinemethod.com` still points at eNom parking (`64.98.135.62`), not Render. Follow DNS-ENOM.md to fix.
+**Current check:** If `curl -s https://www.droplinemethod.com/api/health` returns HTML, DNS still points at the old static site. Follow **[PRODUCTION-FIX-NOW.md](./PRODUCTION-FIX-NOW.md)** and **[DNS-ENOM.md](./DNS-ENOM.md)**.
 
 ## 5. Verify
 

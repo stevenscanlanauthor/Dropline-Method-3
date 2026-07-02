@@ -1,5 +1,6 @@
 # Dropline Method 3 — static web app at droplinemethod.com
-# Connect this repo in Render → New → Blueprint
+# DEPRECATED: Use root render.yaml (full-stack API + SPA) instead.
+# This static-only blueprint has no /api routes — do not use for production.
 
 services:
   - type: web
