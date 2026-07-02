@@ -54,12 +54,16 @@ export function requireAdmin(): RequestHandler {
       return;
     }
     const rows = await db
-      .select({ isAdmin: usersTable.isAdmin })
+      .select({ isAdmin: usersTable.isAdmin, isDisabled: usersTable.isDisabled })
       .from(usersTable)
       .where(eq(usersTable.id, auth.userId))
       .limit(1);
     if (!rows[0]?.isAdmin) {
       res.status(403).json({ error: 'Forbidden: admin only' });
+      return;
+    }
+    if (rows[0].isDisabled) {
+      res.status(403).json({ error: 'Account is disabled.' });
       return;
     }
     next();

@@ -5,6 +5,9 @@ import { db, usersTable } from '@dropline/db';
 import { eq } from 'drizzle-orm';
 import { signToken } from '../lib/jwt';
 import { requireAuth, getAuth } from '../middleware/auth';
+import { getClientIp } from '../lib/clientIp';
+import { checkLoginRateLimit, isIpBlocked, recordLoginEvent } from '../lib/loginSecurity';
+import { touchUserActivity } from '../lib/userActivity';
 
 const router = Router();
 
@@ -40,6 +43,7 @@ router.post('/auth/register', async (req, res) => {
       isAdmin: false,
       isDisabled: false,
       tokenVersion: 0,
+      lastActiveAt: now,
       createdAt: now,
       updatedAt: now,
     });
@@ -65,16 +69,38 @@ router.post('/auth/login', async (req, res) => {
       return;
     }
     const normalized = email.toLowerCase().trim();
+    const ip = getClientIp(req);
+
+    if (await isIpBlocked(ip)) {
+      res.status(403).json({ error: 'Access denied.' });
+      return;
+    }
+
+    const rateLimit = await checkLoginRateLimit(normalized, ip);
+    if (rateLimit.blocked) {
+      res.status(429).json({
+        error: 'Too many failed sign-in attempts. Try again later or contact support.',
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     const rows = await db.select().from(usersTable).where(eq(usersTable.email, normalized)).limit(1);
     const user = rows[0];
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      await recordLoginEvent(user?.id ?? null, normalized, ip, false);
       res.status(401).json({ error: 'Incorrect email or password' });
       return;
     }
     if (user.isDisabled) {
+      await recordLoginEvent(user.id, normalized, ip, false);
       res.status(403).json({ error: 'Account is disabled.' });
       return;
     }
+
+    await recordLoginEvent(user.id, normalized, ip, true);
+    await touchUserActivity(user.id);
+
     const token = signToken(
       { userId: user.id, email: user.email, tokenVersion: user.tokenVersion },
       rememberMe !== false,
@@ -100,6 +126,7 @@ router.get('/auth/me', requireAuth(), async (req, res) => {
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
+    void touchUserActivity(auth.userId);
     const rows = await db
       .select({
         id: usersTable.id,

@@ -8,6 +8,7 @@ export const usersTable = pgTable('users', {
   isAdmin: boolean('is_admin').notNull().default(false),
   isDisabled: boolean('is_disabled').notNull().default(false),
   tokenVersion: integer('token_version').notNull().default(0),
+  lastActiveAt: timestamp('last_active_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
