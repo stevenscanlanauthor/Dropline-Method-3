@@ -72,6 +72,7 @@ curl -sI https://www.droplinemethod.com | head -3
 In browser:
 - Create account / sign in
 - Create a book → edits save and sync
+- Sign in as admin → `/admin` (Users, Login Attempts, Security tabs) — see [ADMIN.md](./ADMIN.md)
 
 ## Step 6 — Decommission old static site (optional)
 

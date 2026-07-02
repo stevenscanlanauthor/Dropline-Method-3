@@ -34,6 +34,7 @@ import OpenInAppButton from './components/OpenInAppButton';
 import OpenInAppLanding from './components/OpenInAppLanding';
 import { shouldOfferOpenInApp } from './lib/open-in-app';
 import { useAuth } from './lib/auth-context';
+import { useAdminAlertCount } from './lib/useAdminAlertCount';
 import SignInPage from './pages/SignInPage';
 import AdminPage from './pages/AdminPage';
 import { setLibraryUserId, syncLibraryFromCloud, migrateLegacyAutosaveToLibrary } from './lib/library';
@@ -51,6 +52,7 @@ type AppScreen = 'library' | 'editor';
 
 export default function App() {
   const { user, isLoaded, signOut } = useAuth();
+  const adminAlertCount = useAdminAlertCount(!!user?.isAdmin);
   const pathname = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/';
 
   const [appScreen, setAppScreen] = useState<AppScreen>('library');
@@ -624,10 +626,20 @@ export default function App() {
           <span className="text-xs text-[var(--muted)] hidden sm:inline truncate max-w-[10rem]">{user.email}</span>
           {user.isAdmin && (
             <a
-              href="/admin"
-              className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
+              href={adminAlertCount > 0 ? '/admin?tab=security' : '/admin'}
+              title={
+                adminAlertCount > 0
+                  ? `${adminAlertCount} unread security alert${adminAlertCount !== 1 ? 's' : ''}`
+                  : 'Admin panel'
+              }
+              className="relative text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
             >
               Admin
+              {adminAlertCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+                  {adminAlertCount > 99 ? '99+' : adminAlertCount}
+                </span>
+              )}
             </a>
           )}
           <button
