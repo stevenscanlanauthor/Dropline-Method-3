@@ -8,6 +8,7 @@ import { requireAuth, getAuth } from '../middleware/auth';
 import { getClientIp } from '../lib/clientIp';
 import { checkLoginRateLimit, isIpBlocked, recordLoginEvent } from '../lib/loginSecurity';
 import { touchUserActivity } from '../lib/userActivity';
+import { ensureTrial } from '../lib/entitlement';
 
 const router = Router();
 
@@ -47,6 +48,7 @@ router.post('/auth/register', async (req, res) => {
       createdAt: now,
       updatedAt: now,
     });
+    await ensureTrial(userId, 'web');
     const token = signToken({ userId, email: normalized, tokenVersion: 0 }, true);
     res.status(201).json({
       token,
@@ -100,6 +102,7 @@ router.post('/auth/login', async (req, res) => {
 
     await recordLoginEvent(user.id, normalized, ip, true);
     await touchUserActivity(user.id);
+    await ensureTrial(user.id, 'web');
 
     const token = signToken(
       { userId: user.id, email: user.email, tokenVersion: user.tokenVersion },

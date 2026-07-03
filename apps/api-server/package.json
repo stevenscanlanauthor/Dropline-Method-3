@@ -9,12 +9,14 @@
     "start": "node dist/index.mjs"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "^1.5.0",
     "@dropline/db": "*",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.44.2",
     "express": "^5.1.0",
+    "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "postgres": "^3.4.7",
     "uuid": "^11.1.0"

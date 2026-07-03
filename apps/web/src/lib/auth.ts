@@ -83,6 +83,37 @@ export async function apiSignOut(): Promise<void> {
   clearStoredAuthToken();
 }
 
+export type EntitlementStatus = {
+  platform: 'web' | 'ios' | 'macos';
+  status: 'trial' | 'paid' | 'expired' | 'none' | 'revoked';
+  trialDaysRemaining: number | null;
+  trialExpiresAt: string | null;
+  paidAt: string | null;
+};
+
+export type BillingStatus = {
+  entitlement: EntitlementStatus;
+  canWrite: boolean;
+};
+
+export async function apiBillingStatus(): Promise<BillingStatus> {
+  const res = await apiFetch(apiUrl('/billing/status'));
+  const data = await res.json();
+  if (!res.ok) throw new Error(String(data.error || 'Failed to load billing'));
+  return data as BillingStatus;
+}
+
+export async function apiIapVerify(jws: string): Promise<{ paid: boolean; entitlement: EntitlementStatus }> {
+  const res = await apiFetch(apiUrl('/iap/verify'), {
+    method: 'POST',
+    headers: { 'X-Platform': 'macos' },
+    body: JSON.stringify({ jws }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(String(data.message || data.error || 'Verification failed'));
+  return data;
+}
+
 export async function apiAdmin<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await apiFetch(apiUrl(path), init);
   const data = await res.json();

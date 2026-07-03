@@ -25,9 +25,33 @@ services:
         value: https://www.droplinemethod.com
       - key: CORS_ORIGIN
         value: https://droplinemethod.com,https://www.droplinemethod.com
+      - key: BILLING_TRIAL_DAYS
+        value: "14"
+      - key: BILLING_MAC_PRICE_DISPLAY
+        value: "39"
+      - key: BILLING_IOS_PRICE_DISPLAY
+        value: "29"
+      - key: APPLE_IOS_BUNDLE_ID
+        value: com.droplinemethod.app
+      - key: APPLE_MAC_BUNDLE_ID
+        value: com.dropline.app
+      - key: APPLE_IOS_PRODUCT_ID
+        value: com.droplinemethod.app.lifetime
+      - key: APPLE_MAC_PRODUCT_ID
+        value: com.dropline.app.lifetime
+      - key: APPLE_APP_APPLE_ID
+        value: "6766370853"
+      - key: APPLE_APP_STORE_ENV
+        value: production
       - key: ADMIN_INITIAL_EMAIL
         sync: false
       - key: ADMIN_INITIAL_PASSWORD
+        sync: false
+      - key: APPLE_APP_STORE_ISSUER_ID
+        sync: false
+      - key: APPLE_APP_STORE_KEY_ID
+        sync: false
+      - key: APPLE_APP_STORE_PRIVATE_KEY
         sync: false
 
 databases:

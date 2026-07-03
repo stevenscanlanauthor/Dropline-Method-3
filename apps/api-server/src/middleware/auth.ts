@@ -7,6 +7,8 @@ declare global {
   namespace Express {
     interface Request {
       auth?: AuthPayload;
+      userId?: string;
+      userEmail?: string | null;
     }
   }
 }
@@ -39,6 +41,8 @@ export function requireAuth(): RequestHandler {
         return;
       }
       req.auth = payload;
+      req.userId = payload.userId;
+      req.userEmail = payload.email;
       next();
     } catch {
       res.status(401).json({ error: 'Invalid or expired session' });

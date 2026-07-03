@@ -5,8 +5,14 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import healthRouter from './routes/health';
 import authRouter from './routes/auth';
+import appleAuthRouter from './routes/appleAuth';
 import booksRouter from './routes/books';
 import adminRouter from './routes/admin';
+import meRouter from './routes/me';
+import iapRouter from './routes/iap';
+import compatRouter from './routes/compat';
+import webhooksRouter from './routes/webhooks';
+import billingRouter from './routes/billing';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,6 +49,10 @@ export function createApp(): Express {
   const allowedOrigins = buildAllowedOrigins();
 
   app.set('trust proxy', 1);
+
+  // Apple webhooks need raw body — mount before JSON parser
+  app.use('/api', webhooksRouter);
+
   app.use(
     cors({
       credentials: true,
@@ -56,7 +66,12 @@ export function createApp(): Express {
 
   app.use('/api', healthRouter);
   app.use('/api', authRouter);
+  app.use('/api', appleAuthRouter);
+  app.use('/api', meRouter);
+  app.use('/api', iapRouter);
+  app.use('/api', billingRouter);
   app.use('/api', booksRouter);
+  app.use('/api', compatRouter);
   app.use('/api', adminRouter);
 
   const webDist = process.env.WEB_DIST_PATH

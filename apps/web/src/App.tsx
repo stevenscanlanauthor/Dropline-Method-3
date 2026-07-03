@@ -37,7 +37,12 @@ import { useAuth } from './lib/auth-context';
 import { useAdminAlertCount } from './lib/useAdminAlertCount';
 import SignInPage from './pages/SignInPage';
 import AdminPage from './pages/AdminPage';
+import BillingPage from './pages/BillingPage';
+import PrivacyPage from './pages/PrivacyPage';
+import SupportPage from './pages/SupportPage';
+import TermsPage from './pages/TermsPage';
 import { setLibraryUserId, syncLibraryFromCloud, migrateLegacyAutosaveToLibrary } from './lib/library';
+import { useBillingStatus } from './lib/useBillingStatus';
 
 const SIDEBAR_MIN = 160;
 const SIDEBAR_MAX = 480;
@@ -53,6 +58,7 @@ type AppScreen = 'library' | 'editor';
 export default function App() {
   const { user, isLoaded, signOut } = useAuth();
   const adminAlertCount = useAdminAlertCount(!!user?.isAdmin);
+  const { canWrite, status: billingStatus } = useBillingStatus(!!user);
   const pathname = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/';
 
   const [appScreen, setAppScreen] = useState<AppScreen>('library');
@@ -455,6 +461,11 @@ export default function App() {
   }
 
   function handleCompile(scope: 'fullManuscript' | 'selectedChapter', includeTitlePage: boolean) {
+    if (!canWrite && !user?.isAdmin) {
+      window.alert('Your trial has ended. Visit Billing to upgrade and compile your manuscript.');
+      window.location.href = '/billing';
+      return;
+    }
     const chapters =
       scope === 'selectedChapter' && selectedChapterId
         ? project.chapters.filter(c => c.id === selectedChapterId)
@@ -533,6 +544,15 @@ export default function App() {
     migrateLegacyAutosaveToLibrary();
     void syncLibraryFromCloud().then(() => setLibraryRefresh(k => k + 1));
   }, [user?.userId]);
+
+  if (pathname === '/billing') {
+    if (!isLoaded) return <div className="min-h-screen flex items-center justify-center text-[var(--muted)]">Loading…</div>;
+    if (!user) return <SignInPage />;
+    return <BillingPage />;
+  }
+  if (pathname === '/privacy') return <PrivacyPage />;
+  if (pathname === '/support') return <SupportPage />;
+  if (pathname === '/terms') return <TermsPage />;
 
   if (pathname === '/admin') {
     if (!isLoaded) {
@@ -649,6 +669,13 @@ export default function App() {
           >
             Sign out
           </button>
+          <a
+            href="/billing"
+            className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
+            title={billingStatus?.entitlement.status === 'trial' ? `${billingStatus.entitlement.trialDaysRemaining ?? 0} days left in trial` : 'Billing'}
+          >
+            {billingStatus?.entitlement.status === 'paid' ? 'Licensed' : 'Billing'}
+          </a>
           {appScreen === 'library' && (
             <button
               type="button"

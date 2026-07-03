@@ -11,6 +11,7 @@ export const booksTable = pgTable(
     title: text('title').notNull().default('Untitled Project'),
     authorName: text('author_name').notNull().default(''),
     project: jsonb('project').notNull().$type<Record<string, unknown>>(),
+    iosCompat: jsonb('ios_compat').$type<Record<string, unknown>>(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
