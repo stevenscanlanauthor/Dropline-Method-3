@@ -76,7 +76,7 @@ export default function CompiledManuscriptModal({ project, text, chapters, inclu
             DOCX
           </button>
           <button type="button" onClick={exportScrivener} className="text-xs bg-[var(--accent)] text-white px-3 py-1.5 rounded-lg">
-            Scrivener import
+            Binder import
           </button>
         </div>
       </div>

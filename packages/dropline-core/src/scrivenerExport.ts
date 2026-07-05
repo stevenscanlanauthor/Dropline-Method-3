@@ -11,23 +11,23 @@ function padChapterIndex(index: number): string {
   return String(index + 1).padStart(2, '0');
 }
 
-const README = `Import this manuscript into Scrivener
+const README = `Import this manuscript
 =====================================
 
 Option A — one file
-  1. In Scrivener: File → Import → Files…
+  1. In your writing app: File → Import → Files…
   2. Choose manuscript.rtf
   3. Choose where to place it in the binder.
 
 Option B — one document per chapter
-  1. In Scrivener: File → Import → Files…
+  1. In your writing app: File → Import → Files…
   2. Select every .rtf file in the chapters/ folder (Shift-click).
-  3. Scrivener creates one binder document per chapter.
+  3. The app creates one binder document per chapter.
 
 Only Drop 6 (final draft) text is included. Title page fields come from your Inspector when enabled at compile.
 `;
 
-/** Zip of RTF files formatted for Scrivener's File → Import → Files… */
+/** Zip of RTF files for import via File → Import → Files… */
 export function buildScrivenerImportBlob(options: CompileOptions): Blob {
   const entries: ZipEntry[] = [];
   const title = options.title.trim() || 'Untitled Manuscript';
@@ -35,7 +35,7 @@ export function buildScrivenerImportBlob(options: CompileOptions): Blob {
   const contact = options.authorContact.trim();
 
   entries.push({
-    name: 'README - Import into Scrivener.txt',
+    name: 'README - Import instructions.txt',
     data: new TextEncoder().encode(README),
   });
 
@@ -79,7 +79,7 @@ export function buildScrivenerImportBlob(options: CompileOptions): Blob {
 export function downloadScrivenerImport(options: CompileOptions, filename: string): void {
   const blob = buildScrivenerImportBlob(options);
   const base = filename.replace(/\.(zip|rtf)$/i, '') || 'manuscript';
-  downloadBlob(blob, `${base}-scrivener-import.zip`);
+  downloadBlob(blob, `${base}-binder-import.zip`);
 }
 
 export function chapterCountForScrivener(options: CompileOptions): number {

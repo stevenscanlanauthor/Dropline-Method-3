@@ -8,8 +8,8 @@ services:
     plan: starter
     region: oregon
     branch: main
-    buildCommand: npm ci && npm run build:web && npm run build --workspace @dropline/api-server
-    preDeployCommand: npm run push --workspace @dropline/db
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm ci && npm run build:web && npm run build --workspace @dropline/api-server
+    preDeployCommand: NPM_CONFIG_PRODUCTION=false npm run push --workspace @dropline/db
     startCommand: cd apps/api-server/dist && WEB_DIST_PATH=../../web/dist NODE_ENV=production node index.mjs
     healthCheckPath: /api/health
     envVars:

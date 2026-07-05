@@ -419,7 +419,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           'Plain text (.txt)',
           'PDF',
           'DOCX (Word)',
-          'Scrivener import (.zip of RTF files — use File → Import → Files… in Scrivener)',
+          'Binder import (.zip of RTF files — use File → Import → Files… in your writing app)',
         ],
       },
       {

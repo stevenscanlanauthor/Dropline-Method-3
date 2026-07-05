@@ -6,7 +6,7 @@ services:
   - type: web
     name: dropline-method-3-web
     runtime: static
-    buildCommand: npm ci && GOMAXPROCS=1 NODE_OPTIONS=--max-old-space-size=512 npm run build:web
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm ci && GOMAXPROCS=1 NODE_OPTIONS=--max-old-space-size=512 npm run build:web
     staticPublishPath: apps/web/dist
     envVars:
       - key: VITE_APP_URL

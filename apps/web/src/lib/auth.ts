@@ -45,14 +45,29 @@ async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   return fetch(url, { ...init, headers, credentials: 'include' });
 }
 
+async function parseJsonResponse(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text.trim()) {
+    if (!res.ok) {
+      throw new Error(`Request failed (${res.status}). The API may not be deployed yet.`);
+    }
+    throw new Error('Account service returned an empty response. The API may not be deployed yet — check Render service "dropline" is Live.');
+  }
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error('Account service returned an invalid response. The site API may not be live yet.');
+  }
+}
+
 export async function apiLogin(email: string, password: string, rememberMe = true): Promise<AuthUser> {
   const res = await apiFetch(apiUrl('/auth/login'), {
     method: 'POST',
     body: JSON.stringify({ email, password, rememberMe }),
   });
-  const data = await res.json();
+  const data = await parseJsonResponse(res);
   if (!res.ok) throw new Error(String(data.error || 'Sign in failed'));
-  storeAuthToken(data.token);
+  storeAuthToken(String(data.token));
   return data.user as AuthUser;
 }
 
@@ -65,16 +80,16 @@ export async function apiRegister(
     method: 'POST',
     body: JSON.stringify({ email, password, displayName }),
   });
-  const data = await res.json();
+  const data = await parseJsonResponse(res);
   if (!res.ok) throw new Error(String(data.error || 'Registration failed'));
-  storeAuthToken(data.token);
+  storeAuthToken(String(data.token));
   return data.user as AuthUser;
 }
 
 export async function apiMe(): Promise<AuthUser | null> {
   const res = await apiFetch(apiUrl('/auth/me'));
   if (res.status === 401) return null;
-  const data = await res.json();
+  const data = await parseJsonResponse(res);
   if (!res.ok) throw new Error(String(data.error || 'Could not load session'));
   return data as AuthUser;
 }

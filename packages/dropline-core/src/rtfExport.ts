@@ -7,7 +7,7 @@ function rtfEscape(text: string): string {
     .replace(/\n/g, '\\par\n');
 }
 
-/** Minimal RTF document from plain text (Scrivener-compatible import). */
+/** Minimal RTF document from plain text (binder import bundle). */
 export function plainToRtf(plain: string): string {
   const body = rtfEscape(plain);
   return `{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\froman Times New Roman;}}\\f0\\fs24 ${body}}`;

@@ -17,7 +17,7 @@ export default function CompileModal({ project, selectedChapterId, onClose, onCo
       <div className="bg-[var(--surface)] rounded-xl max-w-md w-full shadow-[var(--shadow-md)] border border-[var(--border)]" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-[var(--border)] bg-[var(--highlight)]">
           <h2 className="font-semibold text-[var(--ink)]">Compile manuscript</h2>
-          <p className="text-xs text-[var(--muted)] mt-1">Drop 6 only · exports PDF, DOCX, plain text, and Scrivener import.</p>
+          <p className="text-xs text-[var(--muted)] mt-1">Drop 6 only · exports PDF, DOCX, plain text, and binder import.</p>
         </div>
         <div className="p-4 space-y-3 text-sm text-[var(--ink)]">
           <label className="flex items-center gap-2.5 cursor-pointer">
