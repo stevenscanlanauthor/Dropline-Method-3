@@ -13,6 +13,7 @@ import iapRouter from './routes/iap';
 import compatRouter from './routes/compat';
 import webhooksRouter from './routes/webhooks';
 import billingRouter from './routes/billing';
+import setupRouter from './routes/setup';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -73,6 +74,7 @@ export function createApp(): Express {
   app.use('/api', booksRouter);
   app.use('/api', compatRouter);
   app.use('/api', adminRouter);
+  app.use('/api', setupRouter);
 
   const webDist = process.env.WEB_DIST_PATH
     ?? path.resolve(__dirname, '../../web/dist');

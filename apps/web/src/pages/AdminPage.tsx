@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiAdmin } from '../lib/auth';
 import { useAuth } from '../lib/auth-context';
 
-type Tab = 'users' | 'login-events' | 'security';
+type Tab = 'users' | 'invites' | 'access-codes' | 'login-events' | 'security';
 
 interface AdminUser {
   id: string;
@@ -182,6 +182,10 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
                     <button type="button" onClick={() => void patchUser(u.id, { isAdmin: !u.isAdmin })} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">{u.isAdmin ? 'Remove admin' : 'Make admin'}</button>
                     <button type="button" onClick={() => { setResetUser(u); setNewPassword(''); }} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">Reset password</button>
                     <button type="button" onClick={() => void unlockUser(u.id)} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">Unlock sign-in</button>
+                    <button type="button" onClick={() => void apiAdmin(`/admin/users/${u.id}/billing`, { method: 'PATCH', body: JSON.stringify({ action: 'grant_exempt' }) }).then(load)} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">Grant free access</button>
+                    <button type="button" onClick={() => void apiAdmin(`/admin/users/${u.id}/billing`, { method: 'PATCH', body: JSON.stringify({ action: 'mark_paid' }) }).then(load)} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">Mark paid</button>
+                    <button type="button" onClick={() => void apiAdmin(`/admin/users/${u.id}/billing`, { method: 'PATCH', body: JSON.stringify({ action: 'extend_trial', trialDays: 14 }) }).then(load)} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">Extend trial 14d</button>
+                    <button type="button" onClick={() => void apiAdmin(`/admin/users/${u.id}/billing`, { method: 'PATCH', body: JSON.stringify({ action: 'revoke_payment' }) }).then(load)} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">Revoke access</button>
                     <button type="button" onClick={() => void clearBooks(u.id, u.email)} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--border)]">Clear books</button>
                     <button type="button" onClick={() => void deleteUser(u.id, u.email)} className="text-xs px-2.5 py-1.5 rounded-md border border-[var(--danger)] text-[var(--danger)]">Delete user</button>
                   </div>
@@ -397,9 +401,149 @@ function SecurityTab() {
   );
 }
 
+interface InviteCode {
+  code: string;
+  note: string | null;
+  grantsBillingExempt: boolean;
+  isActive: boolean;
+  usedAt: string | null;
+  usedByUserId: string | null;
+  createdAt: string;
+}
+
+interface AccessCode {
+  code: string;
+  note: string | null;
+  maxRedemptions: number;
+  redemptionCount: number;
+  isActive: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+function InvitesTab() {
+  const [rows, setRows] = useState<InviteCode[]>([]);
+  const [code, setCode] = useState('');
+  const [note, setNote] = useState('');
+  const [grantsFree, setGrantsFree] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setRows(await apiAdmin<InviteCode[]>('/admin/invite-codes'));
+  }, []);
+  useEffect(() => { void load().catch(err => setError(err instanceof Error ? err.message : 'Failed')); }, [load]);
+
+  async function create() {
+    setError('');
+    try {
+      await apiAdmin('/admin/invite-codes', {
+        method: 'POST',
+        body: JSON.stringify({ code, note, grantsBillingExempt: grantsFree }),
+      });
+      setCode('');
+      setNote('');
+      setGrantsFree(false);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed');
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3">
+        <h3 className="font-medium">Create invite code</h3>
+        <div className="flex flex-wrap gap-2">
+          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="CODE" className="field-input" />
+          <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note" className="field-input flex-1 min-w-[10rem]" />
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={grantsFree} onChange={e => setGrantsFree(e.target.checked)} /> Grants free lifetime</label>
+          <button type="button" onClick={() => void create()} className="panel-header-action px-3 py-2 text-sm">Create</button>
+        </div>
+        {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+      </div>
+      <div className="space-y-2">
+        {rows.map(r => (
+          <div key={r.code} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 flex flex-wrap justify-between gap-2 text-sm">
+            <div>
+              <p className="font-mono font-medium">{r.code}</p>
+              <p className="text-xs text-[var(--muted)]">
+                {r.note || 'No note'} · {r.grantsBillingExempt ? 'Free lifetime' : 'Trial only'} · {r.isActive ? 'Active' : 'Inactive'}
+                {r.usedAt ? ` · Used ${fmtDate(r.usedAt)}` : ''}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" className="text-xs px-2 py-1 rounded border border-[var(--border)]" onClick={() => void apiAdmin(`/admin/invite-codes/${encodeURIComponent(r.code)}`, { method: 'PATCH', body: JSON.stringify({ isActive: !r.isActive }) }).then(load)}>
+                {r.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+              <button type="button" className="text-xs px-2 py-1 rounded border border-[var(--danger)] text-[var(--danger)]" onClick={() => void apiAdmin(`/admin/invite-codes/${encodeURIComponent(r.code)}`, { method: 'DELETE' }).then(load)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AccessCodesTab() {
+  const [rows, setRows] = useState<AccessCode[]>([]);
+  const [code, setCode] = useState('');
+  const [note, setNote] = useState('');
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setRows(await apiAdmin<AccessCode[]>('/admin/access-codes'));
+  }, []);
+  useEffect(() => { void load().catch(err => setError(err instanceof Error ? err.message : 'Failed')); }, [load]);
+
+  async function create() {
+    setError('');
+    try {
+      await apiAdmin('/admin/access-codes', { method: 'POST', body: JSON.stringify({ code, note, maxRedemptions: 1 }) });
+      setCode('');
+      setNote('');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed');
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3">
+        <h3 className="font-medium">Create friend / access code</h3>
+        <p className="text-xs text-[var(--muted)]">Single-use codes that grant lifetime access when redeemed on Billing.</p>
+        <div className="flex flex-wrap gap-2">
+          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="FRIENDCODE" className="field-input" />
+          <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note" className="field-input flex-1 min-w-[10rem]" />
+          <button type="button" onClick={() => void create()} className="panel-header-action px-3 py-2 text-sm">Create</button>
+        </div>
+        {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+      </div>
+      <div className="space-y-2">
+        {rows.map(r => (
+          <div key={r.code} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 flex flex-wrap justify-between gap-2 text-sm">
+            <div>
+              <p className="font-mono font-medium">{r.code}</p>
+              <p className="text-xs text-[var(--muted)]">
+                {r.note || 'No note'} · {r.redemptionCount}/{r.maxRedemptions} used · {r.isActive ? 'Active' : 'Inactive'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" className="text-xs px-2 py-1 rounded border border-[var(--border)]" onClick={() => void apiAdmin(`/admin/access-codes/${encodeURIComponent(r.code)}`, { method: 'PATCH', body: JSON.stringify({ isActive: !r.isActive }) }).then(load)}>
+                {r.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+              <button type="button" className="text-xs px-2 py-1 rounded border border-[var(--danger)] text-[var(--danger)]" onClick={() => void apiAdmin(`/admin/access-codes/${encodeURIComponent(r.code)}`, { method: 'DELETE' }).then(load)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function tabFromUrl(): Tab {
   const t = new URLSearchParams(window.location.search).get('tab');
-  if (t === 'login-events' || t === 'security') return t;
+  if (t === 'login-events' || t === 'security' || t === 'invites' || t === 'access-codes') return t;
   return 'users';
 }
 
@@ -424,6 +568,8 @@ export default function AdminPage() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'users', label: 'Users' },
+    { id: 'invites', label: 'Invites' },
+    { id: 'access-codes', label: 'Friend codes' },
     { id: 'login-events', label: 'Login Attempts' },
     { id: 'security', label: 'Security' },
   ];
@@ -433,7 +579,7 @@ export default function AdminPage() {
       <header className="app-chrome shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]">
         <div>
           <h1 className="text-lg font-semibold text-[var(--ink)]">Dropline Admin</h1>
-          <p className="text-sm text-[var(--muted)]">Users, login security, and alerts</p>
+          <p className="text-sm text-[var(--muted)]">Users, codes, billing grants, and security</p>
         </div>
         <div className="flex gap-2">
           <a href="/" className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--highlight)]">Back to app</a>
@@ -442,7 +588,7 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-5xl mx-auto p-6">
-        <div className="flex gap-2 mb-6 border-b border-[var(--border)] pb-2">
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-[var(--border)] pb-2">
           {tabs.map(t => (
             <button
               key={t.id}
@@ -456,6 +602,8 @@ export default function AdminPage() {
         </div>
 
         {tab === 'users' && <UsersTab currentUserId={user.userId} />}
+        {tab === 'invites' && <InvitesTab />}
+        {tab === 'access-codes' && <AccessCodesTab />}
         {tab === 'login-events' && <LoginEventsTab />}
         {tab === 'security' && <SecurityTab />}
       </div>

@@ -10,7 +10,8 @@ services:
     branch: main
     buildCommand: NPM_CONFIG_PRODUCTION=false npm ci && npm run build:web && npm run build --workspace @dropline/api-server
     preDeployCommand: NPM_CONFIG_PRODUCTION=false npm run push --workspace @dropline/db
-    startCommand: cd apps/api-server/dist && WEB_DIST_PATH=../../web/dist NODE_ENV=production node index.mjs
+    # Run from repo root so Node resolves workspace deps from root node_modules.
+    startCommand: WEB_DIST_PATH=apps/web/dist NODE_ENV=production node apps/api-server/dist/index.mjs
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -31,6 +32,20 @@ services:
         value: "39"
       - key: BILLING_IOS_PRICE_DISPLAY
         value: "29"
+      - key: OPEN_REGISTRATION
+        value: "true"
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: "true"
+      - key: RESEND_FROM_EMAIL
+        value: noreply@droplinemethod.com
+      - key: RESEND_API_KEY
+        sync: false
+      - key: APPLE_REVIEW_PASSWORD
+        sync: false
+      - key: APPLE_REVIEW_EXPIRED_PASSWORD
+        sync: false
+      - key: ADMIN_BOOTSTRAP_KEY
+        sync: false
       - key: APPLE_IOS_BUNDLE_ID
         value: com.droplinemethod.app
       - key: APPLE_MAC_BUNDLE_ID

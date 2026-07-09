@@ -18,7 +18,12 @@ export default function SupportPage() {
           the same account on web, Mac, and iPhone. Visit <Link href="/billing" className="text-[var(--accent)] underline">Billing</Link> while signed in.
         </p>
         <h2 className="text-lg font-semibold">Trial</h2>
-        <p>New accounts receive a 14-day free trial with full access.</p>
+        <p>New accounts receive a 14-day free trial with full access. Lifetime access is a one-time purchase, not a subscription.</p>
+        <h2 className="text-lg font-semibold">Delete account</h2>
+        <p>
+          Web/Mac: profile menu → Delete Account. iOS: Settings → Account → Delete Account.
+          Type your email to confirm. Demo App Review accounts cannot be deleted.
+        </p>
       </section>
     </LegalShell>
   );

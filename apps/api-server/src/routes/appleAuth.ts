@@ -65,11 +65,17 @@ router.post('/auth/apple', async (req, res) => {
         isAdmin: false,
         isDisabled: false,
         tokenVersion: 0,
+        emailVerifiedAt: now,
         createdAt: now,
         updatedAt: now,
       })
       .returning();
     user = created;
+  } else if (!user.emailVerifiedAt) {
+    await db
+      .update(usersTable)
+      .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(usersTable.id, user.id));
   }
 
   if (!user) {

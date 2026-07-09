@@ -3,6 +3,7 @@ export interface AuthUser {
   email: string;
   displayName: string | null;
   isAdmin: boolean;
+  emailVerified?: boolean;
 }
 
 const TOKEN_KEY = 'dropline_auth_token';
@@ -33,6 +34,34 @@ function storeAuthToken(token: string): void {
 
 export function clearStoredAuthToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+}
+
+export class RateLimitError extends Error {
+  retryAfterSeconds: number;
+  constructor(retryAfterSeconds: number) {
+    const minutes = Math.ceil(retryAfterSeconds / 60);
+    super(`Too many attempts — try again in ${minutes} minute${minutes !== 1 ? 's' : ''}`);
+    this.name = 'RateLimitError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+export class EmailNotVerifiedError extends Error {
+  email: string;
+  constructor(email: string, message: string) {
+    super(message);
+    this.name = 'EmailNotVerifiedError';
+    this.email = email;
+  }
+}
+
+export class EmailVerificationRequiredError extends Error {
+  email: string;
+  constructor(email: string, message: string) {
+    super(message);
+    this.name = 'EmailVerificationRequiredError';
+    this.email = email;
+  }
 }
 
 async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
@@ -66,6 +95,13 @@ export async function apiLogin(email: string, password: string, rememberMe = tru
     body: JSON.stringify({ email, password, rememberMe }),
   });
   const data = await parseJsonResponse(res);
+  if (res.status === 429) throw new RateLimitError(Number(data.retryAfterSeconds ?? data.retryAfter ?? 60));
+  if (res.status === 403 && data.emailNotVerified) {
+    throw new EmailNotVerifiedError(
+      String(data.email ?? email),
+      String(data.error || 'Please confirm your email before signing in.'),
+    );
+  }
   if (!res.ok) throw new Error(String(data.error || 'Sign in failed'));
   storeAuthToken(String(data.token));
   return data.user as AuthUser;
@@ -75,13 +111,23 @@ export async function apiRegister(
   email: string,
   password: string,
   displayName?: string,
+  inviteCode?: string,
 ): Promise<AuthUser> {
+  const body: Record<string, string> = { email, password };
+  if (displayName?.trim()) body.displayName = displayName.trim();
+  if (inviteCode?.trim()) body.inviteCode = inviteCode.trim();
   const res = await apiFetch(apiUrl('/auth/register'), {
     method: 'POST',
-    body: JSON.stringify({ email, password, displayName }),
+    body: JSON.stringify(body),
   });
   const data = await parseJsonResponse(res);
   if (!res.ok) throw new Error(String(data.error || 'Registration failed'));
+  if (data.emailVerificationRequired) {
+    throw new EmailVerificationRequiredError(
+      String(data.email ?? email),
+      String(data.message || 'We sent a confirmation link to your email. Please confirm before signing in.'),
+    );
+  }
   storeAuthToken(String(data.token));
   return data.user as AuthUser;
 }
@@ -96,6 +142,112 @@ export async function apiMe(): Promise<AuthUser | null> {
 
 export async function apiSignOut(): Promise<void> {
   clearStoredAuthToken();
+}
+
+export async function apiForgotPassword(email: string): Promise<{ resetUrl?: string }> {
+  const res = await apiFetch(apiUrl('/auth/forgot-password'), {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  const data = await parseJsonResponse(res);
+  return { resetUrl: data.resetUrl as string | undefined };
+}
+
+export async function apiResetPassword(token: string, newPassword: string): Promise<void> {
+  const res = await apiFetch(apiUrl('/auth/reset-password'), {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(String(data.error || 'Failed to reset password'));
+}
+
+export async function apiVerifyEmail(token: string): Promise<{ email: string }> {
+  const res = await apiFetch(apiUrl('/auth/verify-email'), {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(String(data.error || 'Failed to verify email'));
+  return { email: String(data.email) };
+}
+
+export async function apiResendVerification(email: string): Promise<void> {
+  const res = await apiFetch(apiUrl('/auth/resend-verification'), {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(String(data.error || 'Failed to resend verification email'));
+}
+
+export async function apiChangePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const res = await apiFetch(apiUrl('/auth/change-password'), {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(String(data.error || 'Failed to change password'));
+  if (data.token) storeAuthToken(String(data.token));
+}
+
+export async function apiChangeEmail(currentPassword: string, newEmail: string): Promise<{ email: string; emailVerificationRequired?: boolean }> {
+  const res = await apiFetch(apiUrl('/auth/change-email'), {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newEmail }),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(String(data.error || 'Failed to change email'));
+  if (data.token) storeAuthToken(String(data.token));
+  return {
+    email: String(data.email),
+    emailVerificationRequired: !!data.emailVerificationRequired,
+  };
+}
+
+export async function apiDeleteAccount(opts: { password?: string; emailConfirmation: string }): Promise<void> {
+  const res = await apiFetch(apiUrl('/auth/delete-account'), {
+    method: 'POST',
+    body: JSON.stringify(opts),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(String(data.error || 'Failed to delete account'));
+  clearStoredAuthToken();
+}
+
+export async function apiLoginEvents(): Promise<Array<{
+  id: string;
+  emailAttempted: string;
+  ipAddress: string;
+  succeeded: boolean;
+  createdAt: string;
+}>> {
+  const res = await apiFetch(apiUrl('/auth/login-events'));
+  const data = await res.json();
+  if (!res.ok) throw new Error(String(data.error || 'Failed to load login history'));
+  return data;
+}
+
+export async function apiBillingPublic(): Promise<{
+  trialDays: number;
+  macProductId: string;
+  iosProductId: string;
+  macPriceDisplay: string;
+  iosPriceDisplay: string;
+}> {
+  const res = await apiFetch(apiUrl('/billing/public'));
+  const data = await res.json();
+  if (!res.ok) throw new Error(String(data.error || 'Failed to load billing info'));
+  return data;
+}
+
+export async function apiRedeemAccessCode(code: string): Promise<void> {
+  const res = await apiFetch(apiUrl('/billing/redeem-code'), {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok) throw new Error(String(data.error || 'Failed to redeem code'));
 }
 
 export type EntitlementStatus = {

@@ -1,6 +1,6 @@
 import { Link } from '../components/SiteNav';
 import { isMacAppStoreShell } from '../lib/electron-app';
-import { apiBillingStatus, apiIapVerify } from '../lib/auth';
+import { apiBillingStatus, apiIapVerify, apiRedeemAccessCode } from '../lib/auth';
 import { useEffect, useState } from 'react';
 
 export default function BillingPage() {
@@ -9,6 +9,9 @@ export default function BillingPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [iapPrice, setIapPrice] = useState<string | null>(null);
+  const [friendCode, setFriendCode] = useState('');
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeMsg, setCodeMsg] = useState('');
   const isMas = isMacAppStoreShell();
 
   useEffect(() => {
@@ -102,6 +105,9 @@ export default function BillingPage() {
           <div className="space-y-4">
             {isMas ? (
               <>
+                <p className="text-sm text-[var(--muted)]">
+                  One-time lifetime purchase (not a subscription). New accounts get a 14-day free trial.
+                </p>
                 <button
                   type="button"
                   disabled={busy}
@@ -122,9 +128,41 @@ export default function BillingPage() {
             ) : (
               <p className="text-sm text-[var(--muted)]">
                 Upgrade on the <strong>Mac App Store</strong> ($39 lifetime) or <strong>iOS App Store</strong> ($29 lifetime).
-                Sign in with the same account on any device — your purchase unlocks everywhere.
+                Sign in with the same account on any device — your purchase unlocks everywhere. Not a subscription.
               </p>
             )}
+            <div className="rounded-xl border border-[var(--border)] p-4 space-y-2">
+              <p className="text-sm font-medium">Have a friend code?</p>
+              <div className="flex gap-2">
+                <input
+                  value={friendCode}
+                  onChange={e => setFriendCode(e.target.value.toUpperCase())}
+                  placeholder="FRIENDCODE"
+                  className="field-input flex-1"
+                />
+                <button
+                  type="button"
+                  disabled={codeBusy || !friendCode.trim()}
+                  className="panel-header-action px-3 py-2 text-sm disabled:opacity-50"
+                  onClick={() => {
+                    setCodeBusy(true);
+                    setCodeMsg('');
+                    setError('');
+                    void apiRedeemAccessCode(friendCode.trim())
+                      .then(async () => {
+                        setCodeMsg('Code redeemed — lifetime access unlocked.');
+                        setStatus(await apiBillingStatus());
+                        setFriendCode('');
+                      })
+                      .catch(err => setError(err instanceof Error ? err.message : 'Could not redeem code'))
+                      .finally(() => setCodeBusy(false));
+                  }}
+                >
+                  {codeBusy ? '…' : 'Redeem'}
+                </button>
+              </div>
+              {codeMsg && <p className="text-sm text-emerald-700">{codeMsg}</p>}
+            </div>
           </div>
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}

@@ -34,13 +34,15 @@ import OpenInAppButton from './components/OpenInAppButton';
 import OpenInAppLanding from './components/OpenInAppLanding';
 import { shouldOfferOpenInApp } from './lib/open-in-app';
 import { useAuth } from './lib/auth-context';
-import { useAdminAlertCount } from './lib/useAdminAlertCount';
 import SignInPage from './pages/SignInPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import AdminPage from './pages/AdminPage';
 import BillingPage from './pages/BillingPage';
 import PrivacyPage from './pages/PrivacyPage';
 import SupportPage from './pages/SupportPage';
 import TermsPage from './pages/TermsPage';
+import ProfileMenu from './components/ProfileMenu';
 import { setLibraryUserId, syncLibraryFromCloud, migrateLegacyAutosaveToLibrary } from './lib/library';
 import { useBillingStatus } from './lib/useBillingStatus';
 
@@ -56,8 +58,7 @@ function clamp(n: number, min: number, max: number) {
 type AppScreen = 'library' | 'editor';
 
 export default function App() {
-  const { user, isLoaded, signOut } = useAuth();
-  const adminAlertCount = useAdminAlertCount(!!user?.isAdmin);
+  const { user, isLoaded } = useAuth();
   const { canWrite, status: billingStatus } = useBillingStatus(!!user);
   const pathname = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/';
 
@@ -545,6 +546,16 @@ export default function App() {
     void syncLibraryFromCloud().then(() => setLibraryRefresh(k => k + 1));
   }, [user?.userId]);
 
+  if (pathname === '/verify-email') return <VerifyEmailPage />;
+  if (pathname === '/reset-password') return <ResetPasswordPage />;
+  if (pathname === '/sign-in' || pathname === '/sign-up') {
+    if (!isLoaded) return <div className="min-h-screen flex items-center justify-center text-[var(--muted)]">Loading…</div>;
+    if (user) {
+      window.location.replace('/');
+      return null;
+    }
+    return <SignInPage />;
+  }
   if (pathname === '/billing') {
     if (!isLoaded) return <div className="min-h-screen flex items-center justify-center text-[var(--muted)]">Loading…</div>;
     if (!user) return <SignInPage />;
@@ -643,39 +654,14 @@ export default function App() {
           )}
         </div>
         <div className="app-chrome-actions desktop-no-drag">
-          <span className="text-xs text-[var(--muted)] hidden sm:inline truncate max-w-[10rem]">{user.email}</span>
-          {user.isAdmin && (
-            <a
-              href={adminAlertCount > 0 ? '/admin?tab=security' : '/admin'}
-              title={
-                adminAlertCount > 0
-                  ? `${adminAlertCount} unread security alert${adminAlertCount !== 1 ? 's' : ''}`
-                  : 'Admin panel'
-              }
-              className="relative text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
-            >
-              Admin
-              {adminAlertCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
-                  {adminAlertCount > 99 ? '99+' : adminAlertCount}
-                </span>
-              )}
-            </a>
-          )}
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
-          >
-            Sign out
-          </button>
-          <a
-            href="/billing"
-            className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-muted)]"
-            title={billingStatus?.entitlement.status === 'trial' ? `${billingStatus.entitlement.trialDaysRemaining ?? 0} days left in trial` : 'Billing'}
-          >
-            {billingStatus?.entitlement.status === 'paid' ? 'Licensed' : 'Billing'}
-          </a>
+          <ProfileMenu
+            billingLabel={billingStatus?.entitlement.status === 'paid' ? 'Licensed' : 'Billing'}
+            billingTitle={
+              billingStatus?.entitlement.status === 'trial'
+                ? `${billingStatus.entitlement.trialDaysRemaining ?? 0} days left in trial`
+                : 'Billing & plan'
+            }
+          />
           {appScreen === 'library' && (
             <button
               type="button"

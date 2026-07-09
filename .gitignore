@@ -14,3 +14,5 @@ apps/desktop/dist/
 Dropline-Keys
 Dropline-Keys.pub
 .gitlab-token.local
+.gitlab-token.local.save
+.pnpm-store/

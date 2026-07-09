@@ -26,6 +26,7 @@ export async function ensureInitialAdmin(): Promise<void> {
     isAdmin: true,
     isDisabled: false,
     tokenVersion: 0,
+    emailVerifiedAt: now,
     createdAt: now,
     updatedAt: now,
   });

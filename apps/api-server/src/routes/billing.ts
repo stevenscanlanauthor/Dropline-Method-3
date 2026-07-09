@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { requireAuth } from '../middleware/auth';
-import { ensureTrial, getEntitlement, summarize } from '../lib/entitlement';
+import { requireAuth, getAuth } from '../middleware/auth';
+import { ensureTrial, summarize } from '../lib/entitlement';
 import { IOS_PRODUCT_ID, MAC_PRODUCT_ID } from '../lib/appStore';
+import { redeemAccessCodeForUser } from '../lib/signupCodes';
 
 const router = Router();
 
@@ -24,6 +25,26 @@ router.get('/billing/status', requireAuth(), async (req, res) => {
   res.json({
     entitlement: summarize(ent, 'web'),
     canWrite: summarize(ent, 'web').status === 'trial' || summarize(ent, 'web').status === 'paid',
+  });
+});
+
+router.post('/billing/redeem-code', requireAuth(), async (req, res) => {
+  const auth = getAuth(req);
+  if (!auth) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const { code } = req.body as { code?: string };
+  const result = await redeemAccessCodeForUser(auth.userId, code ?? '');
+  if (!result.ok) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  const ent = await ensureTrial(auth.userId, 'web');
+  res.json({
+    ok: true,
+    entitlement: summarize(ent, 'web'),
+    canWrite: true,
   });
 });
 

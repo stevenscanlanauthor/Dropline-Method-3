@@ -7,10 +7,25 @@ import {
   loginEventsTable,
   blockedIpsTable,
   adminAlertsTable,
+  inviteCodesTable,
+  accessCodesTable,
+  accessCodeRedemptionsTable,
+  entitlementsTable,
 } from '@dropline/db';
 import { eq, desc, count, sql, or, and } from 'drizzle-orm';
 import { requireAuth, requireAdmin, getAuth } from '../middleware/auth';
 import { getActiveUserWindowMs } from '../lib/userActivity';
+import {
+  ensureTrial,
+  getEntitlement,
+  grantPaidAllPlatforms,
+  revokeAllPlatforms,
+  summarize,
+  TRIAL_DAYS,
+} from '../lib/entitlement';
+import { PROTECTED_ACCOUNT_EMAILS } from '../lib/deleteUser';
+import { deleteUserAndData } from '../lib/deleteUser';
+import { normalizeAccessCode } from '../lib/signupCodes';
 
 const router = Router();
 
@@ -163,8 +178,284 @@ router.delete('/admin/users/:id', requireAuth(), requireAdmin(), async (req, res
       res.status(400).json({ error: 'You cannot delete your own account.' });
       return;
     }
-    await db.delete(usersTable).where(eq(usersTable.id, id));
+    const rows = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+    if (!rows[0]) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    if (PROTECTED_ACCOUNT_EMAILS.has(rows[0].email.toLowerCase())) {
+      res.status(403).json({ error: 'Protected App Review accounts cannot be deleted.' });
+      return;
+    }
+    await deleteUserAndData(id);
     res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.patch('/admin/users/:id/billing', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, trialDays } = req.body as {
+      action?: 'mark_paid' | 'revoke_payment' | 'extend_trial' | 'grant_exempt' | 'revoke_exempt';
+      trialDays?: number;
+    };
+    const users = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+    if (!users[0]) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    if (action === 'mark_paid' || action === 'grant_exempt') {
+      await grantPaidAllPlatforms({
+        userId: id,
+        source: 'admin_grant',
+        externalId: `admin:${action}:${Date.now()}`,
+      });
+    } else if (action === 'revoke_payment' || action === 'revoke_exempt') {
+      await revokeAllPlatforms({ userId: id, reason: `admin_${action}` });
+    } else if (action === 'extend_trial') {
+      const days = Number.isFinite(trialDays) && (trialDays ?? 0) > 0 ? Number(trialDays) : TRIAL_DAYS;
+      const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      for (const platform of ['web', 'ios', 'macos'] as const) {
+        const existing = await getEntitlement(id, platform);
+        if (existing) {
+          await db
+            .update(entitlementsTable)
+            .set({
+              source: 'trial',
+              trialExpiresAt: expires,
+              paidAt: null,
+              revokedAt: null,
+              revokedReason: null,
+            })
+            .where(eq(entitlementsTable.id, existing.id));
+        } else {
+          await db.insert(entitlementsTable).values({
+            userId: id,
+            platform,
+            source: 'trial',
+            trialExpiresAt: expires,
+          });
+        }
+      }
+    } else {
+      res.status(400).json({ error: 'Invalid billing action' });
+      return;
+    }
+
+    const ent = await ensureTrial(id, 'web');
+    res.json({ ok: true, entitlement: summarize(ent, 'web') });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/admin/invite-codes', requireAuth(), requireAdmin(), async (_req, res) => {
+  try {
+    const rows = await db.select().from(inviteCodesTable).orderBy(desc(inviteCodesTable.createdAt));
+    res.json(
+      rows.map(r => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        usedAt: r.usedAt?.toISOString() ?? null,
+      })),
+    );
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/admin/invite-codes', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const { code, note, grantsBillingExempt } = req.body as {
+      code?: string;
+      note?: string;
+      grantsBillingExempt?: boolean;
+    };
+    const normalized = normalizeAccessCode(code ?? '');
+    if (!normalized) {
+      res.status(400).json({ error: 'code is required' });
+      return;
+    }
+    const rows = await db
+      .insert(inviteCodesTable)
+      .values({
+        code: normalized,
+        note: note?.trim() || null,
+        grantsBillingExempt: !!grantsBillingExempt,
+        isActive: true,
+        createdAt: new Date(),
+      })
+      .returning();
+    res.status(201).json({
+      ...rows[0],
+      createdAt: rows[0].createdAt.toISOString(),
+      usedAt: null,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('unique') || msg.includes('duplicate')) {
+      res.status(400).json({ error: 'That invite code already exists' });
+      return;
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.patch('/admin/invite-codes/:code', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const code = normalizeAccessCode(decodeURIComponent(req.params.code));
+    const { isActive, note, grantsBillingExempt } = req.body as {
+      isActive?: boolean;
+      note?: string | null;
+      grantsBillingExempt?: boolean;
+    };
+    const updates: Partial<typeof inviteCodesTable.$inferInsert> = {};
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (note !== undefined) updates.note = note?.trim() || null;
+    if (grantsBillingExempt !== undefined) updates.grantsBillingExempt = grantsBillingExempt;
+    const rows = await db
+      .update(inviteCodesTable)
+      .set(updates)
+      .where(eq(inviteCodesTable.code, code))
+      .returning();
+    if (!rows[0]) {
+      res.status(404).json({ error: 'Invite code not found' });
+      return;
+    }
+    res.json({
+      ...rows[0],
+      createdAt: rows[0].createdAt.toISOString(),
+      usedAt: rows[0].usedAt?.toISOString() ?? null,
+    });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/admin/invite-codes/:code', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const code = normalizeAccessCode(decodeURIComponent(req.params.code));
+    await db.delete(inviteCodesTable).where(eq(inviteCodesTable.code, code));
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/admin/access-codes', requireAuth(), requireAdmin(), async (_req, res) => {
+  try {
+    const rows = await db.select().from(accessCodesTable).orderBy(desc(accessCodesTable.createdAt));
+    res.json(
+      rows.map(r => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        expiresAt: r.expiresAt?.toISOString() ?? null,
+      })),
+    );
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/admin/access-codes', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const { code, note, maxRedemptions } = req.body as {
+      code?: string;
+      note?: string;
+      maxRedemptions?: number;
+    };
+    const normalized = normalizeAccessCode(code ?? '');
+    if (!normalized) {
+      res.status(400).json({ error: 'code is required' });
+      return;
+    }
+    const rows = await db
+      .insert(accessCodesTable)
+      .values({
+        code: normalized,
+        note: note?.trim() || null,
+        maxRedemptions: maxRedemptions && maxRedemptions > 0 ? maxRedemptions : 1,
+        redemptionCount: 0,
+        isActive: true,
+        createdAt: new Date(),
+      })
+      .returning();
+    res.status(201).json({
+      ...rows[0],
+      createdAt: rows[0].createdAt.toISOString(),
+      expiresAt: null,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('unique') || msg.includes('duplicate')) {
+      res.status(400).json({ error: 'That access code already exists' });
+      return;
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.patch('/admin/access-codes/:code', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const code = normalizeAccessCode(decodeURIComponent(req.params.code));
+    const { isActive, note } = req.body as { isActive?: boolean; note?: string | null };
+    const updates: Partial<typeof accessCodesTable.$inferInsert> = {};
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (note !== undefined) updates.note = note?.trim() || null;
+    const rows = await db
+      .update(accessCodesTable)
+      .set(updates)
+      .where(eq(accessCodesTable.code, code))
+      .returning();
+    if (!rows[0]) {
+      res.status(404).json({ error: 'Access code not found' });
+      return;
+    }
+    res.json({
+      ...rows[0],
+      createdAt: rows[0].createdAt.toISOString(),
+      expiresAt: rows[0].expiresAt?.toISOString() ?? null,
+    });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/admin/access-codes/:code', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const code = normalizeAccessCode(decodeURIComponent(req.params.code));
+    await db.delete(accessCodesTable).where(eq(accessCodesTable.code, code));
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/admin/access-codes/:code/redemptions', requireAuth(), requireAdmin(), async (req, res) => {
+  try {
+    const code = normalizeAccessCode(decodeURIComponent(req.params.code));
+    const rows = await db
+      .select({
+        id: accessCodeRedemptionsTable.id,
+        userId: accessCodeRedemptionsTable.userId,
+        redeemedAt: accessCodeRedemptionsTable.redeemedAt,
+        email: usersTable.email,
+      })
+      .from(accessCodeRedemptionsTable)
+      .leftJoin(usersTable, eq(usersTable.id, accessCodeRedemptionsTable.userId))
+      .where(eq(accessCodeRedemptionsTable.code, code))
+      .orderBy(desc(accessCodeRedemptionsTable.redeemedAt));
+    res.json(
+      rows.map(r => ({
+        id: r.id,
+        userId: r.userId,
+        email: r.email,
+        redeemedAt: r.redeemedAt.toISOString(),
+      })),
+    );
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
