@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "push": "drizzle-kit push",
+    "push": "drizzle-kit push --force",
     "generate": "drizzle-kit generate"
   },
   "dependencies": {

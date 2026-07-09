@@ -10,8 +10,8 @@ services:
     branch: main
     buildCommand: NPM_CONFIG_PRODUCTION=false npm ci && npm run build:web && npm run build --workspace @dropline/api-server
     preDeployCommand: NPM_CONFIG_PRODUCTION=false npm run push --workspace @dropline/db
-    # Run from repo root so Node resolves workspace deps from root node_modules.
-    startCommand: WEB_DIST_PATH=apps/web/dist NODE_ENV=production node apps/api-server/dist/index.mjs
+    # Run from repo root. Bundle is mostly self-contained; apple library still needs node_modules.
+    startCommand: WEB_DIST_PATH=$PWD/apps/web/dist NODE_ENV=production node apps/api-server/dist/index.mjs
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

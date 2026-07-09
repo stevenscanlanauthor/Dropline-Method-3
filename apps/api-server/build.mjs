@@ -6,15 +6,23 @@ import fs from 'node:fs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '../..');
 
+// Bundle app + deps into one file so Render start does not depend on
+// node_modules layout / cwd. Keep only packages that break when bundled.
 await esbuild.build({
   entryPoints: [path.join(__dirname, 'src/index.ts')],
   bundle: true,
   platform: 'node',
   format: 'esm',
   outfile: path.join(__dirname, 'dist/index.mjs'),
-  packages: 'external',
   alias: {
     '@dropline/db': path.join(root, 'packages/db/src/index.ts'),
+  },
+  // Native / dynamic-require packages stay external
+  external: [
+    '@apple/app-store-server-library',
+  ],
+  banner: {
+    js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",
   },
 });
 

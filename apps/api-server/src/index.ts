@@ -13,10 +13,40 @@ import {
 
 const port = Number(process.env.PORT ?? 3001);
 
+function envPresent(key: string): boolean {
+  return Boolean(process.env[key]?.trim());
+}
+
+function logEnvDiagnostics() {
+  const keys = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'APP_URL',
+    'CORS_ORIGIN',
+    'WEB_DIST_PATH',
+    'RESEND_API_KEY',
+    'ADMIN_INITIAL_EMAIL',
+    'APPLE_REVIEW_PASSWORD',
+    'APPLE_REVIEW_EXPIRED_PASSWORD',
+  ];
+  console.log(
+    '[startup] env present:',
+    keys.map(k => `${k}=${envPresent(k) ? 'yes' : 'NO'}`).join(' '),
+  );
+  console.log('[startup] cwd=', process.cwd(), 'PORT=', process.env.PORT ?? '(unset)');
+}
+
 async function main() {
-  if (!process.env.DATABASE_URL?.trim()) {
+  logEnvDiagnostics();
+
+  if (!envPresent('DATABASE_URL')) {
     throw new Error(
-      'DATABASE_URL is missing. On Render → dropline → Environment, link dropline-db (or set DATABASE_URL).',
+      'DATABASE_URL is missing. On Render → dropline → Environment, add DATABASE_URL from dropline-db (Internal Database URL), then Manual Deploy.',
+    );
+  }
+  if (!envPresent('JWT_SECRET')) {
+    throw new Error(
+      'JWT_SECRET is missing. On Render → dropline → Environment, set JWT_SECRET (or sync from blueprint generateValue).',
     );
   }
 
@@ -57,8 +87,8 @@ async function main() {
   }
 
   const app = createApp();
-  app.listen(port, () => {
-    console.log(`Dropline API listening on port ${port}`);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Dropline API listening on 0.0.0.0:${port}`);
   });
 }
 
